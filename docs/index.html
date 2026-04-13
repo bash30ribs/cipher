@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CIPHER — Official Desktop AI Assistant</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&family=Roboto+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
     <style>
         :root {
             --bg: #05070a;
@@ -19,7 +22,12 @@
             --gradient: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta));
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             background-color: var(--bg);
             color: var(--text-main);
@@ -39,12 +47,27 @@
             z-index: -1;
             animation: orbital 20s infinite alternate linear;
         }
-        .orb-1 { top: -20%; left: -10%; background: radial-gradient(circle, rgba(255, 45, 117, 0.08) 0%, transparent 70%); }
-        .orb-2 { bottom: -20%; right: -10%; background: radial-gradient(circle, rgba(0, 229, 255, 0.08) 0%, transparent 70%); }
+
+        .orb-1 {
+            top: -20%;
+            left: -10%;
+            background: radial-gradient(circle, rgba(255, 45, 117, 0.08) 0%, transparent 70%);
+        }
+
+        .orb-2 {
+            bottom: -20%;
+            right: -10%;
+            background: radial-gradient(circle, rgba(0, 229, 255, 0.08) 0%, transparent 70%);
+        }
 
         @keyframes orbital {
-            from { transform: translate(0, 0) scale(1); }
-            to { transform: translate(100px, 50px) scale(1.1); }
+            from {
+                transform: translate(0, 0) scale(1);
+            }
+
+            to {
+                transform: translate(100px, 50px) scale(1.1);
+            }
         }
 
         header {
@@ -61,12 +84,40 @@
             border-bottom: 1px solid var(--glass-border);
         }
 
-        .logo-wrap { display: flex; align-items: center; gap: 1rem; }
-        .logo-img { width: 42px; height: 42px; object-fit: contain; }
-        .logo-text { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; letter-spacing: 4px; font-weight: 700; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .logo-wrap {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
 
-        nav a { color: var(--text-main); text-decoration: none; margin-left: 2.5rem; font-weight: 500; font-size: 1.1rem; transition: color .3s; }
-        nav a:hover { color: var(--accent-cyan); }
+        .logo-img {
+            width: 42px;
+            height: 42px;
+            object-fit: contain;
+        }
+
+        .logo-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            letter-spacing: 4px;
+            font-weight: 700;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        nav a {
+            color: var(--text-main);
+            text-decoration: none;
+            margin-left: 2.5rem;
+            font-weight: 500;
+            font-size: 1.1rem;
+            transition: color .3s;
+        }
+
+        nav a:hover {
+            color: var(--accent-cyan);
+        }
 
         .hero {
             height: 100vh;
@@ -94,7 +145,11 @@
             margin-bottom: 3rem;
         }
 
-        .cta-group { display: flex; gap: 1.5rem; }
+        .cta-group {
+            display: flex;
+            gap: 1.5rem;
+        }
+
         .btn {
             padding: 1rem 2.5rem;
             border-radius: 4px;
@@ -106,19 +161,23 @@
             position: relative;
             overflow: hidden;
         }
+
         .btn-primary {
             background: var(--gradient);
             color: white;
             border: none;
         }
+
         .btn-primary:hover {
             transform: translateY(-3px);
             box-shadow: 0 10px 30px rgba(0, 229, 255, 0.3);
         }
+
         .btn-outline {
             border: 1px solid var(--accent-cyan);
             color: var(--accent-cyan);
         }
+
         .btn-outline:hover {
             background: rgba(0, 229, 255, 0.1);
             transform: translateY(-3px);
@@ -136,6 +195,7 @@
             margin-bottom: 4rem;
             position: relative;
         }
+
         .section-title::after {
             content: '';
             position: absolute;
@@ -160,14 +220,30 @@
             border-radius: 12px;
             transition: all .3s;
         }
+
         .feature-card:hover {
             border-color: var(--accent-cyan);
             background: rgba(255, 255, 255, 0.05);
             transform: translateY(-10px);
         }
-        .feature-icon { font-size: 2rem; margin-bottom: 1.5rem; display: block; }
-        .feature-card h3 { font-family: 'Orbitron', sans-serif; font-size: 1.25rem; margin-bottom: 1rem; color: var(--accent-cyan); }
-        .feature-card p { color: var(--text-muted); font-size: 1.1rem; }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            display: block;
+        }
+
+        .feature-card h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--accent-cyan);
+        }
+
+        .feature-card p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
 
         .terminal-wrap {
             padding: 5rem 10%;
@@ -185,16 +261,31 @@
             box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
             overflow: hidden;
         }
+
         .term-header {
             background: #161b22;
             padding: 0.75rem 1.25rem;
             display: flex;
             gap: 6px;
         }
-        .dot { width: 12px; height: 12px; border-radius: 50%; }
-        .dot-red { background: #ff5f56; }
-        .dot-yel { background: #ffbd2e; }
-        .dot-grn { background: #27c93f; }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot-red {
+            background: #ff5f56;
+        }
+
+        .dot-yel {
+            background: #ffbd2e;
+        }
+
+        .dot-grn {
+            background: #27c93f;
+        }
 
         .term-body {
             padding: 2rem;
@@ -202,9 +293,18 @@
             font-size: 0.95rem;
             color: #d1d5db;
         }
-        .prompt { color: var(--accent-cyan); }
-        .cmd { color: white; }
-        .out { color: var(--text-muted); }
+
+        .prompt {
+            color: var(--accent-cyan);
+        }
+
+        .cmd {
+            color: white;
+        }
+
+        .out {
+            color: var(--text-muted);
+        }
 
         footer {
             padding: 4rem 10%;
@@ -222,14 +322,31 @@
         }
 
         @media (max-width: 768px) {
-            header { padding: 1.5rem 5%; }
-            nav { display: none; }
-            .hero h1 { font-size: 3rem; }
-            .cta-group { flex-direction: column; width: 100%; }
-            .btn { width: 100%; text-align: center; }
+            header {
+                padding: 1.5rem 5%;
+            }
+
+            nav {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 3rem;
+            }
+
+            .cta-group {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .btn {
+                width: 100%;
+                text-align: center;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="blur-orb orb-1"></div>
     <div class="blur-orb orb-2"></div>
@@ -248,7 +365,8 @@
 
     <section class="hero">
         <h1>Your OS, <br> <span style="color:var(--accent-cyan)">AI-Powered.</span></h1>
-        <p>A precision-engineered desktop assistant built on Gemini. Control your local environment with voice, logic, and natural language.</p>
+        <p>A precision-engineered desktop assistant built on Gemini. Control your local environment with voice, logic,
+            and natural language.</p>
         <div class="cta-group">
             <a href="https://github.com" class="btn btn-primary">Download v2.5</a>
             <a href="#features" class="btn btn-outline">Explore Features</a>
@@ -300,14 +418,17 @@
                 <div class="dot dot-grn"></div>
             </div>
             <div class="term-body">
-                <div><span class="prompt">C:\Users\User></span> <span class="cmd">git clone https://github.com/CIPHER-AI</span></div>
+                <div><span class="prompt">C:\Users\User></span> <span class="cmd">git clone
+                        https://github.com/CIPHER-AI</span></div>
                 <div class="out">Cloning into 'CIPHER'... done.</div>
                 <br>
-                <div><span class="prompt">C:\CIPHER></span> <span class="cmd">pip install -r requirements.txt</span></div>
+                <div><span class="prompt">C:\CIPHER></span> <span class="cmd">pip install -r requirements.txt</span>
+                </div>
                 <div class="out">Requirement already satisfied...</div>
                 <br>
                 <div><span class="prompt">C:\CIPHER></span> <span class="cmd">python server.py</span></div>
-                <div class="out" style="color:var(--accent-cyan)">[CIPHER] Server starting on http://localhost:5000</div>
+                <div class="out" style="color:var(--accent-cyan)">[CIPHER] Server starting on http://localhost:5000
+                </div>
                 <div class="out" style="color:var(--accent-cyan)">[CIPHER] Ready to receive commands...</div>
             </div>
         </div>
@@ -315,7 +436,7 @@
 
     <footer>
         <span class="footer-logo">CIPHER ASSISTANT</span>
-        <p>© 2026 Developed by HRISHAV & Antigravity. MIT Licensed.</p>
+        <p>© 2026 Developed by HRISHAV & TEAM CIPHER </p>
     </footer>
 
     <script>
@@ -330,4 +451,5 @@
         });
     </script>
 </body>
+
 </html>
