@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CIPHER — Official Desktop AI Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #05070a;
+            --accent-cyan: #00e5ff;
+            --accent-magenta: #ff2d75;
+            --text-main: #e0e6ed;
+            --text-muted: #8892b0;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --gradient: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta));
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Rajdhani', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Ambient Background Blur */
+        .blur-orb {
+            position: fixed;
+            width: 50vw;
+            height: 50vw;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 229, 255, 0.1) 0%, transparent 70%);
+            filter: blur(80px);
+            z-index: -1;
+            animation: orbital 20s infinite alternate linear;
+        }
+        .orb-1 { top: -20%; left: -10%; background: radial-gradient(circle, rgba(255, 45, 117, 0.08) 0%, transparent 70%); }
+        .orb-2 { bottom: -20%; right: -10%; background: radial-gradient(circle, rgba(0, 229, 255, 0.08) 0%, transparent 70%); }
+
+        @keyframes orbital {
+            from { transform: translate(0, 0) scale(1); }
+            to { transform: translate(100px, 50px) scale(1.1); }
+        }
+
+        header {
+            padding: 2rem 10%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 100;
+            background: rgba(5, 7, 10, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .logo-wrap { display: flex; align-items: center; gap: 1rem; }
+        .logo-img { width: 42px; height: 42px; object-fit: contain; }
+        .logo-text { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; letter-spacing: 4px; font-weight: 700; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        nav a { color: var(--text-main); text-decoration: none; margin-left: 2.5rem; font-weight: 500; font-size: 1.1rem; transition: color .3s; }
+        nav a:hover { color: var(--accent-cyan); }
+
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0 1rem;
+        }
+
+        .hero h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(3rem, 8vw, 6rem);
+            line-height: 1.1;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: -2px;
+        }
+
+        .hero p {
+            font-size: 1.4rem;
+            max-width: 600px;
+            color: var(--text-muted);
+            margin-bottom: 3rem;
+        }
+
+        .cta-group { display: flex; gap: 1.5rem; }
+        .btn {
+            padding: 1rem 2.5rem;
+            border-radius: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-decoration: none;
+            transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+            border: none;
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 229, 255, 0.3);
+        }
+        .btn-outline {
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+        .btn-outline:hover {
+            background: rgba(0, 229, 255, 0.1);
+            transform: translateY(-3px);
+        }
+
+        .features {
+            padding: 5rem 10%;
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .section-title {
+            text-align: center;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            margin-bottom: 4rem;
+            position: relative;
+        }
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: var(--gradient);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            padding: 2.5rem;
+            border-radius: 12px;
+            transition: all .3s;
+        }
+        .feature-card:hover {
+            border-color: var(--accent-cyan);
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-10px);
+        }
+        .feature-icon { font-size: 2rem; margin-bottom: 1.5rem; display: block; }
+        .feature-card h3 { font-family: 'Orbitron', sans-serif; font-size: 1.25rem; margin-bottom: 1rem; color: var(--accent-cyan); }
+        .feature-card p { color: var(--text-muted); font-size: 1.1rem; }
+
+        .terminal-wrap {
+            padding: 5rem 10%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .terminal {
+            width: 100%;
+            max-width: 800px;
+            background: #0d1117;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+        .term-header {
+            background: #161b22;
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            gap: 6px;
+        }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .dot-red { background: #ff5f56; }
+        .dot-yel { background: #ffbd2e; }
+        .dot-grn { background: #27c93f; }
+
+        .term-body {
+            padding: 2rem;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.95rem;
+            color: #d1d5db;
+        }
+        .prompt { color: var(--accent-cyan); }
+        .cmd { color: white; }
+        .out { color: var(--text-muted); }
+
+        footer {
+            padding: 4rem 10%;
+            text-align: center;
+            border-top: 1px solid var(--glass-border);
+            color: var(--text-muted);
+        }
+
+        .footer-logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            header { padding: 1.5rem 5%; }
+            nav { display: none; }
+            .hero h1 { font-size: 3rem; }
+            .cta-group { flex-direction: column; width: 100%; }
+            .btn { width: 100%; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="blur-orb orb-1"></div>
+    <div class="blur-orb orb-2"></div>
+
+    <header>
+        <div class="logo-wrap">
+            <img src="images/logo.png" alt="CIPHER" class="logo-img">
+            <span class="logo-text">CIPHER</span>
+        </div>
+        <nav>
+            <a href="#features">Features</a>
+            <a href="#install">Install</a>
+            <a href="https://github.com">GitHub</a>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <h1>Your OS, <br> <span style="color:var(--accent-cyan)">AI-Powered.</span></h1>
+        <p>A precision-engineered desktop assistant built on Gemini. Control your local environment with voice, logic, and natural language.</p>
+        <div class="cta-group">
+            <a href="https://github.com" class="btn btn-primary">Download v2.5</a>
+            <a href="#features" class="btn btn-outline">Explore Features</a>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <h2 class="section-title">High-Efficiency Control</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <span class="feature-icon">🎙️</span>
+                <h3>Hybrid Interface</h3>
+                <p>Switch seamlessly between high-fidelity voice control and low-latency text input.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🚀</span>
+                <h3>System Direct</h3>
+                <p>Launch apps, control volume, lock your screen, and manage browser windows directly from the AI.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🪤</span>
+                <h3>The Trap System</h3>
+                <p>Batch multi-launch sequences for apps and websites to automate your workflow instantly.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🌦️</span>
+                <h3>Active Aware</h3>
+                <p>Get live weather updates, battery health, CPU load, and system performance at a glance.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🤖</span>
+                <h3>Free Will Mode</h3>
+                <p>Bypass local routing with "Answer This" for deep-dive AI logic and spoken responses.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🎯</span>
+                <h3>Focus Protocol</h3>
+                <p>One command to mute distractions, close social media, and focus on what matters.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="terminal-wrap" id="install">
+        <h2 class="section-title">Initialize CIPHER</h2>
+        <div class="terminal">
+            <div class="term-header">
+                <div class="dot dot-red"></div>
+                <div class="dot dot-yel"></div>
+                <div class="dot dot-grn"></div>
+            </div>
+            <div class="term-body">
+                <div><span class="prompt">C:\Users\User></span> <span class="cmd">git clone https://github.com/CIPHER-AI</span></div>
+                <div class="out">Cloning into 'CIPHER'... done.</div>
+                <br>
+                <div><span class="prompt">C:\CIPHER></span> <span class="cmd">pip install -r requirements.txt</span></div>
+                <div class="out">Requirement already satisfied...</div>
+                <br>
+                <div><span class="prompt">C:\CIPHER></span> <span class="cmd">python server.py</span></div>
+                <div class="out" style="color:var(--accent-cyan)">[CIPHER] Server starting on http://localhost:5000</div>
+                <div class="out" style="color:var(--accent-cyan)">[CIPHER] Ready to receive commands...</div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <span class="footer-logo">CIPHER ASSISTANT</span>
+        <p>© 2026 Developed by HRISHAV & Antigravity. MIT Licensed.</p>
+    </footer>
+
+    <script>
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
