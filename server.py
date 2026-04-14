@@ -984,13 +984,17 @@ def _build_local_reply(result: dict) -> str:
 if __name__ == "__main__":
     import sys
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    port = int(os.environ.get("PORT", 5000))
     print("="*36)
     print("   CIPHER  --  Desktop AI Engine   ")
     print(f"   OS: {OS}")
+    print(f"   Port: {port}")
     print(f"   Time: {datetime.now().strftime('%H:%M:%S')}")
+    if os.environ.get("RENDER"):
+        print("   Mode: CLOUD (Action features disabled)")
     print("="*36)
     print()
-    print("[CIPHER] Server starting on http://localhost:5000")
+    print(f"[CIPHER] Server starting on port {port}")
     print("[CIPHER] Ready to receive commands...")
     print()
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=False)

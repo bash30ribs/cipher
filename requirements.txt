@@ -9,3 +9,4 @@ pywin32>=306
 psutil>=7.2.2
 pyperclip>=1.11.0
 requests>=2.31.0
+gunicorn>=21.2.0
