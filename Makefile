@@ -36,15 +36,15 @@ run:
 # ── Open frontend in browser ─────────────────────────────────────────────────
 open:
 	@echo "[ CIPHER ] Opening frontend..."
-	$(BROWSER_OPEN) cipher.html
+	$(BROWSER_OPEN) http://localhost:5000/app
 
 # ── Start server + open UI ────────────────────────────────────────────────────
 start:
 	@echo "[ CIPHER ] Launching CIPHER..."
 	@$(PYTHON) server.py &
 	@sleep 1.5
-	@$(BROWSER_OPEN) cipher.html
-	@echo "[ CIPHER ] Running. Press Ctrl+C to stop."
+	@$(BROWSER_OPEN) http://localhost:5000/app
+	@echo "[ CIPHER ] Running at http://localhost:5000/app — Press Ctrl+C to stop."
 
 # ── Clean Python cache ────────────────────────────────────────────────────────
 clean:

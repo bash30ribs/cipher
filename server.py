@@ -23,7 +23,7 @@ try:
 except ImportError:
     _pyperclip = None
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from google import genai
 from google.genai import types
@@ -36,9 +36,9 @@ if not API_KEY:
 
 client = genai.Client(api_key=API_KEY)
 
-# ── Flask app ─────────────────────────────────────────────────────────────────
-app = Flask(__name__)
-CORS(app)
+# ── Flask & CORS ──────────────────────────────────────────────────────────────
+app = Flask(__name__, static_folder='.', static_url_path='')
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # ── Chat history (in-memory) ────────────────────────────────────────────────
 chat_history = []
@@ -739,7 +739,19 @@ def route_intent(text: str):
 
 @app.route("/")
 def index():
-    return jsonify({"status": "CIPHER running", "os": OS})
+    return jsonify({"status": "CIPHER running", "os": OS, "version": "2.5"})
+
+
+@app.route("/app")
+def serve_app():
+    """Serve the cipher.html interface at http://localhost:5000/app"""
+    return send_from_directory(Path(__file__).parent, 'cipher.html')
+
+
+@app.route("/cipher_logo.png")
+def serve_logo():
+    """Serve the logo so the app interface finds it."""
+    return send_from_directory(Path(__file__).parent, 'cipher_logo.png')
 
 
 # ── Trap helpers ──────────────────────────────────────────────────────────────
@@ -995,6 +1007,7 @@ if __name__ == "__main__":
     print("="*36)
     print()
     print(f"[CIPHER] Server starting on port {port}")
-    print("[CIPHER] Ready to receive commands...")
+    print(f"[CIPHER] Open the app at: http://localhost:{port}/app")
+    print("[CIPHER] API ready at:    http://localhost:{}/chat".format(port))
     print()
     app.run(host="0.0.0.0", port=port, debug=False)
