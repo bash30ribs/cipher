@@ -2,7 +2,10 @@
 
 > Voice-powered AI assistant with OS control, built on Gemini + Flask.
 
-**🚀 ADVANCED VERSION — Now with 20+ System Commands & AI Personality**
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/hrishav2208/CIPHER.github.io)
+[![Live Demo](https://img.shields.io/badge/Live-Demo-4cc9f0?style=for-the-badge)](https://hrishav2208.github.io/CIPHER.github.io/)
+
+**🚀 ADVANCED VERSION — NOW LIVE & CLOUD-READY**
 
 ---
 
