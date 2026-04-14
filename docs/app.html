@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+ 
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CIPHER — Interactive App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <style>
+    /* ── Reset & Variables ──────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+ 
+    :root {
+      --bg: #0b0d11;
+      --surface: #15181e;
+      --border: #23272f;
+      --accent: #4cc9f0; /* Soft Blue Sparkle */
+      --accent-soft: rgba(76, 201, 240, 0.1);
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --danger: #f43f5e;
+      --success: #10b981;
+      --glow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --radius: 12px;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-ui: 'Inter', sans-serif;
+      --font-heading: 'Outfit', sans-serif;
+    }
+ 
+    html,
+    body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+      font-size: 16px;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+ 
+    /* ── Background ────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(76, 201, 240, 0.03), transparent 40%),
+                  radial-gradient(circle at bottom left, rgba(76, 201, 240, 0.02), transparent 40%);
+      pointer-events: none;
+      z-index: 0;
+    }
+ 
+    /* ── Layout ─────────────────────────────────────────────────── */
+    #app {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+ 
+    /* ── Header ─────────────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 0 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+ 
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+ 
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+ 
+    .logo-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+ 
+    .logo-text {
+      font-family: var(--font-heading);
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text);
+    }
+ 
+    .logo-sub {
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      margin-top: -1px;
+      font-weight: 500;
+    }
+ 
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+ 
+    #status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      transition: background 0.3s;
+    }
+ 
+    #status-dot.offline {
+      background: var(--muted);
+    }
+ 
+    #status-dot.thinking {
+      background: var(--accent);
+      animation: pulse-soft 2s infinite;
+    }
+ 
+    @keyframes pulse-soft {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+ 
+    #status-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+ 
+    .btn-icon {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      transition: all 0.2s;
+    }
+ 
+    .btn-icon:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+ 
+    /* ── Connection Settings ─────────────────────────────────────── */
+    .connection-panel {
+      position: absolute;
+      top: 70px;
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      z-index: 100;
+      display: none;
+      width: 280px;
+    }
+    .connection-panel.show { display: block; }
+    .connection-panel h4 { font-size: 0.8rem; margin-bottom: 8px; color: var(--text); }
+    .connection-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      color: var(--text);
+      border-radius: 6px;
+      font-size: 0.8rem;
+      margin-bottom: 10px;
+    }
+    .connection-save {
+      width: 100%;
+      padding: 8px;
+      background: var(--accent);
+      border: none;
+      color: var(--bg);
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+ 
+    /* ── Messages ───────────────────────────────────────────────── */
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      scrollbar-width: none;
+    }
+ 
+    #messages::-webkit-scrollbar {
+      display: none;
+    }
+ 
+    .msg {
+      display: flex;
+      gap: 16px;
+    }
+ 
+    .msg.user {
+      flex-direction: row-reverse;
+    }
+ 
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      font-size: 0.7rem;
+      font-family: var(--font-heading);
+      font-weight: 700;
+    }
+ 
+    .msg.user .avatar {
+      background: var(--border);
+      color: var(--text);
+    }
+ 
+    .msg.ai .avatar {
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      overflow: hidden;
+      padding: 4px;
+    }
+ 
+    .msg.ai .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+ 
+    .bubble {
+      max-width: 80%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+ 
+    .msg.user .bubble {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+ 
+    .msg.ai .bubble {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+ 
+    .msg-time {
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-top: 6px;
+      font-family: var(--font-mono);
+      opacity: 0.6;
+    }
+ 
+    /* Thinking indicator */
+    .thinking-dots { display: flex; gap: 4px; }
+    .thinking-dots span { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); animation: wave 1.4s infinite; }
+    @keyframes wave { 0%, 60%, 100% { transform: initial; opacity: 0.3; } 30% { transform: translateY(-3px); opacity: 1; } }
+ 
+    /* ── Input bar ──────────────────────────────────────────────── */
+    .input-bar {
+      padding: 24px 0 32px;
+      flex-shrink: 0;
+    }
+ 
+    .input-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 10px 16px;
+    }
+ 
+    #user-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: var(--font-ui);
+      font-size: 0.95rem;
+      resize: none;
+      max-height: 120px;
+      min-height: 24px;
+    }
+ 
+    /* Buttons */
+    #mic-btn, #send-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      color: var(--muted);
+    }
+ 
+    #mic-btn:hover, #send-btn:hover {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+ 
+    #mic-btn.recording {
+      color: var(--danger);
+      background: rgba(244, 63, 94, 0.1);
+    }
+ 
+    /* ── Hints ────────────────────────────────────────────────── */
+    .hints { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .hint { font-size: 0.7rem; font-family: var(--font-mono); color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+    .hint:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+ 
+    /* ── Toast ────────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.8rem;
+      padding: 10px 20px;
+      border-radius: 10px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s;
+      z-index: 999;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+ 
+    /* ── Welcome ──────────────────────────────────────────────── */
+    #welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 60px 0; text-align: center; }
+    #welcome .big-icon { width: 56px; height: 56px; display: grid; place-items: center; margin-bottom: 8px; }
+    #welcome h2 { font-family: var(--font-heading); font-size: 1.5rem; font-weight: 700; color: var(--text); }
+    #welcome p { font-size: 0.9rem; color: var(--muted); max-width: 400px; line-height: 1.6; }
+ 
+  </style>
+</head>
+ 
+<body>
+  <div id="app">
+    <header>
+      <div class="logo">
+        <div class="logo-icon"><img src="cipher_logo.png" alt="logo" /></div>
+        <div>
+          <div class="logo-text">CIPHER</div>
+          <div class="logo-sub">INTERACTIVE DEMO</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div id="status-dot"></div>
+        <span id="status-label">ONLINE</span>
+        <button class="btn-icon" onclick="toggleSettings()" title="Connection Settings">🔗</button>
+        <button class="btn-icon" onclick="clearChat()" title="Clear Chat">CLR</button>
+      </div>
+ 
+      <div class="connection-panel" id="settings-panel">
+        <h4>Backend Connection</h4>
+        <input class="connection-input" id="server-url" placeholder="http://localhost:5000" />
+        <button class="connection-save" onclick="saveSettings()">Apply Changes</button>
+        <p style="font-size: 0.65rem; color: var(--muted); margin-top: 10px;">
+          Set this to your <b>Render</b> URL to use the app online.
+        </p>
+      </div>
+    </header>
+ 
+    <div id="messages">
+      <div id="welcome">
+        <div class="big-icon"><img src="cipher_logo.png" style="width:48px;height:48px;" alt="CIPHER" /></div>
+        <h2>DEMO MODE ACTIVE</h2>
+        <p>This is the hosted version of CIPHER.<br/>
+           Connect it to your local or cloud backend in <b>Settings</b> to begin.
+        </p>
+      </div>
+    </div>
+ 
+    <div class="input-bar">
+      <div class="input-row">
+        <textarea id="user-input" rows="1" placeholder="Type or say something..." autocomplete="off"></textarea>
+        <button id="mic-btn" onclick="toggleVoice()">🎙️</button>
+        <button id="send-btn" onclick="sendMessage()">✨</button>
+      </div>
+      <div class="hints">
+        <span class="hint" onclick="insertHint('answer this ')">ask AI</span>
+        <span class="hint" onclick="insertHint('weather in ')">weather</span>
+        <span class="hint" onclick="insertHint('battery')">battery</span>
+        <span class="hint" onclick="insertHint('open youtube')">youtube</span>
+      </div>
+    </div>
+  </div>
+ 
+  <div id="toast"></div>
+ 
+  <script>
+    let SERVER = localStorage.getItem('CIPHER_SERVER') || "http://localhost:5000";
+    document.getElementById('server-url').value = SERVER;
+ 
+    const messagesEl = document.getElementById("messages");
+    const inputEl = document.getElementById("user-input");
+    const welcomeEl = document.getElementById("welcome");
+ 
+    function toggleSettings() {
+      document.getElementById('settings-panel').classList.toggle('show');
+    }
+ 
+    function saveSettings() {
+      const url = document.getElementById('server-url').value.trim();
+      if (!url) return;
+      SERVER = url.endsWith('/') ? url.slice(0, -1) : url;
+      localStorage.setItem('CIPHER_SERVER', SERVER);
+      toggleSettings();
+      showToast("Backend URL updated!");
+      checkServer();
+    }
+ 
+    async function checkServer() {
+      try {
+        const r = await fetch(SERVER + "/", { signal: AbortSignal.timeout(3000) });
+        setStatus(r.ok ? "online" : "offline");
+      } catch {
+        setStatus("offline");
+      }
+    }
+ 
+    function setStatus(state) {
+      const dot = document.getElementById("status-dot");
+      const label = document.getElementById("status-label");
+      dot.className = state;
+      label.textContent = state.toUpperCase();
+    }
+ 
+    async function sendMessage() {
+      const text = inputEl.value.trim();
+      if (!text) return;
+      if (welcomeEl) welcomeEl.remove();
+      appendMessage("user", text);
+      inputEl.value = "";
+      setStatus("thinking");
+      const thinking = appendThinking();
+ 
+      try {
+        const res = await fetch(SERVER + "/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text }),
+        });
+        thinking.remove();
+        const data = await res.json();
+        appendMessage("ai", data.reply || "Done.");
+      } catch (err) {
+        thinking.remove();
+        appendMessage("ai", "Connection Failed. Please check your Backend URL in Settings.", true);
+      } finally {
+        setStatus("online");
+      }
+    }
+ 
+    function appendMessage(role, text, isError = false) {
+      const wrap = document.createElement("div");
+      wrap.className = `msg ${role}`;
+      wrap.innerHTML = `
+        <div class="avatar">${role === 'ai' ? '<img src="cipher_logo.png">' : 'YOU'}</div>
+        <div>
+          <div class="bubble" style="${isError ? 'border-color:var(--danger)' : ''}">${text}</div>
+          <div class="msg-time">${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+        </div>
+      `;
+      messagesEl.appendChild(wrap);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+ 
+    function appendThinking() {
+      const wrap = document.createElement("div");
+      wrap.className = "msg ai";
+      wrap.innerHTML = `
+        <div class="avatar"><img src="cipher_logo.png"></div>
+        <div class="bubble"><div class="thinking-dots"><span></span><span></span><span></span></div></div>
+      `;
+      messagesEl.appendChild(wrap);
+      return wrap;
+    }
+ 
+    function insertHint(text) { inputEl.value = text; inputEl.focus(); }
+    function clearChat() { messagesEl.innerHTML = ""; showToast("Chat reset."); }
+    function showToast(m) {
+      const t = document.getElementById("toast");
+      t.textContent = m; t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 3000);
+    }
+ 
+    /* Simple Speech Proxy */
+    let recognition;
+    function toggleVoice() {
+      const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!Speech) return showToast("Speech not supported.");
+      if (!recognition) {
+        recognition = new Speech();
+        recognition.onstart = () => document.getElementById('mic-btn').classList.add('recording');
+        recognition.onend = () => document.getElementById('mic-btn').classList.remove('recording');
+        recognition.onresult = (e) => { inputEl.value = e.results[0][0].transcript; sendMessage(); };
+      }
+      recognition.start();
+    }
+ 
+    setInterval(checkServer, 10000);
+    checkServer();
+  </script>
+</body>
+</html>
