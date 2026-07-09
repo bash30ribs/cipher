@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import json
+import time
 import platform
 import subprocess
 import webbrowser
@@ -111,31 +112,49 @@ PROCESS_MAP = {
 
 # ── Website shortcuts ─────────────────────────────────────────────────────────
 SITE_MAP = {
-    "youtube":   "https://www.youtube.com",
-    "github":    "https://www.github.com",
-    "gmail":     "https://mail.google.com",
-    "google":    "https://www.google.com",
-    "chatgpt":   "https://chat.openai.com",
-    "claude":    "https://claude.ai",
-    "reddit":    "https://www.reddit.com",
-    "twitter":   "https://twitter.com",
-    "x":         "https://twitter.com",
-    "linkedin":  "https://www.linkedin.com",
-    "netflix":   "https://www.netflix.com",
-    "instagram": "https://www.instagram.com",
-    "whatsapp":  "https://web.whatsapp.com",
-    "maps":      "https://maps.google.com",
-    "drive":     "https://drive.google.com",
-    "facebook":  "https://www.facebook.com",
-    "amazon":    "https://www.amazon.com",
+    "youtube":       "https://www.youtube.com",
+    "github":        "https://www.github.com",
+    "gmail":         "https://mail.google.com",
+    "google":        "https://www.google.com",
+    "chatgpt":       "https://chat.openai.com",
+    "claude":        "https://claude.ai",
+    "gemini":        "https://gemini.google.com",
+    "reddit":        "https://www.reddit.com",
+    "twitter":       "https://twitter.com",
+    "x":             "https://twitter.com",
+    "linkedin":      "https://www.linkedin.com",
+    "netflix":       "https://www.netflix.com",
+    "instagram":     "https://www.instagram.com",
+    "snapchat":      "https://web.snapchat.com",
+    "tiktok":        "https://www.tiktok.com",
+    "pinterest":     "https://www.pinterest.com",
+    "twitch":        "https://www.twitch.tv",
+    "whatsapp":      "https://web.whatsapp.com",
+    "maps":          "https://maps.google.com",
+    "drive":         "https://drive.google.com",
+    "facebook":      "https://www.facebook.com",
+    "amazon":        "https://www.amazon.com",
     "stackoverflow": "https://stackoverflow.com",
-    "wikipedia": "https://www.wikipedia.org",
-    "naukri":    "https://www.naukri.com",
-    "indeed":    "https://www.indeed.com",
-    "leetcode":  "https://leetcode.com",
-    "notion":    "https://www.notion.so",
-    "figma":     "https://www.figma.com",
+    "wikipedia":     "https://www.wikipedia.org",
+    "naukri":        "https://www.naukri.com",
+    "indeed":        "https://www.indeed.com",
+    "leetcode":      "https://leetcode.com",
+    "notion":        "https://www.notion.so",
+    "figma":         "https://www.figma.com",
+    "spotify":       "https://open.spotify.com",
+    "quora":         "https://www.quora.com",
+    "medium":        "https://medium.com",
+    "canva":         "https://www.canva.com",
+    "calendar":      "https://calendar.google.com",
+    "meet":          "https://meet.google.com",
+    "docs":          "https://docs.google.com",
+    "sheets":        "https://sheets.google.com",
+    "slides":        "https://slides.google.com",
+    "hotstar":       "https://www.hotstar.com",
+    "prime":         "https://www.primevideo.com",
+    "prime video":   "https://www.primevideo.com",
 }
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -190,26 +209,76 @@ def universal_launch(app_name: str) -> dict:
 
 
 def close_app(name: str) -> dict:
-    """Close an app by name using taskkill."""
+    """Close an app by name. Uses psutil to scan all running processes,
+    falls back to taskkill on Windows."""
     name_lower = name.lower().strip()
-    process = PROCESS_MAP.get(name_lower)
-    if not process and OS == "Windows":
-        # Guess: appname.exe
-        process = name_lower.replace(" ", "") + ".exe"
-    if OS == "Windows" and process:
+    # Remove trailing noise words that user might say (e.g. "close chrome app" -> "chrome")
+    name_lower = re.sub(r'\s+(app|application|program|software|window)$', '', name_lower).strip()
+
+    process_filename = PROCESS_MAP.get(name_lower)
+    if not process_filename and OS == "Windows":
+        process_filename = name_lower.replace(" ", "") + ".exe"
+    elif not process_filename:
+        process_filename = name_lower
+
+    print(f"[CIPHER] close_app: looking for '{name_lower}' / process='{process_filename}'")
+
+    killed_any = False
+    if _psutil:
+        procs_to_kill = []
+        for proc in _psutil.process_iter(['pid', 'name']):
+            try:
+                proc_name = (proc.info.get('name') or '').strip()
+                if not proc_name:
+                    continue
+                pn_lower = proc_name.lower()
+                match = (
+                    pn_lower == process_filename.lower() or
+                    pn_lower == name_lower + ".exe" or
+                    pn_lower == name_lower
+                )
+                if match:
+                    procs_to_kill.append(proc)
+            except (_psutil.NoSuchProcess, _psutil.AccessDenied):
+                pass
+
+        for proc in procs_to_kill:
+            try:
+                proc.terminate()
+                killed_any = True
+            except (_psutil.NoSuchProcess, _psutil.AccessDenied):
+                pass
+
+        if killed_any:
+            # Give processes 2s to terminate gracefully, then force-kill
+            import time as _time
+            _time.sleep(0.5)
+            for proc in procs_to_kill:
+                try:
+                    if proc.is_running():
+                        proc.kill()
+                except (_psutil.NoSuchProcess, _psutil.AccessDenied):
+                    pass
+            return {"action": "close_app", "app": name, "reply": f"{name.capitalize()} has been closed."}
+
+    # Fallback: taskkill on Windows
+    if OS == "Windows" and process_filename:
         result = subprocess.run(
-            f'taskkill /F /IM "{process}" /T',
+            f'taskkill /F /IM "{process_filename}" /T',
             shell=True, capture_output=True, text=True
         )
-        if result.returncode == 0:
+        print(f"[CIPHER] taskkill result: rc={result.returncode} stderr={result.stderr[:100]}")
+        if result.returncode == 0 or "SUCCESS" in result.stdout.upper():
             return {"action": "close_app", "app": name, "reply": f"{name.capitalize()} has been closed."}
-        # If exact match failed, try without quotes (handles cases like Zoom.exe)
+        # Try without exe extension — user might have said app name only
+        bare_name = name_lower.replace(" ", "")
         result2 = subprocess.run(
-            f'taskkill /F /IM {process} /T',
+            f'taskkill /F /IM "{bare_name}.exe" /T',
             shell=True, capture_output=True, text=True
         )
-        if result2.returncode == 0:
+        if result2.returncode == 0 or "SUCCESS" in result2.stdout.upper():
             return {"action": "close_app", "app": name, "reply": f"{name.capitalize()} has been closed."}
+
     return {"action": "close_app", "app": name, "reply": f"Could not find a running process for '{name}'. Make sure it is open."}
 
 
@@ -270,20 +339,81 @@ def open_app(name: str) -> dict:
 
 
 def get_system_info() -> dict:
-    """Return basic system information."""
+    """Return real system information from this machine."""
+    # ── Processor: read from registry on Windows for real CPU brand string ──
+    processor = platform.processor() or platform.machine()
+    if OS == "Windows":
+        try:
+            import winreg
+            key = winreg.OpenKey(
+                winreg.HKEY_LOCAL_MACHINE,
+                r"HARDWARE\DESCRIPTION\System\CentralProcessor\0"
+            )
+            processor = winreg.QueryValueEx(key, "ProcessorNameString")[0].strip()
+            winreg.CloseKey(key)
+        except Exception as e:
+            print(f"[CIPHER] winreg CPU read failed: {e}")
+    elif OS == "Darwin":
+        try:
+            import subprocess as _sp
+            out = _sp.check_output(["sysctl", "-n", "machdep.cpu.brand_string"]).decode().strip()
+            if out:
+                processor = out
+        except:
+            pass
+    elif OS == "Linux":
+        try:
+            with open("/proc/cpuinfo") as f:
+                for line in f:
+                    if "model name" in line.lower():
+                        processor = line.split(":", 1)[1].strip()
+                        break
+        except:
+            pass
+
+    # ── RAM: use psutil for accurate total ──
+    ram_str = "Unknown"
+    if _psutil:
+        try:
+            mem = _psutil.virtual_memory()
+            ram_gb = round(mem.total / (1024 ** 3), 1)
+            ram_str = f"{ram_gb} GB"
+        except Exception as e:
+            print(f"[CIPHER] psutil RAM read failed: {e}")
+
+    # ── Hostname ──
+    try:
+        import socket
+        hostname = socket.gethostname()
+    except:
+        hostname = "Unknown"
+
     return {
-        "os": OS,
+        "os": f"{OS} {platform.release()}",
         "version": platform.version(),
         "machine": platform.machine(),
-        "processor": platform.processor(),
+        "processor": processor,
+        "ram": ram_str,
+        "hostname": hostname,
         "python": sys.version.split()[0],
         "time": datetime.now().strftime("%H:%M:%S"),
         "date": datetime.now().strftime("%A, %B %d %Y"),
     }
 
 
+_last_screenshot_time = 0
+_screenshot_lock = threading.Lock()
+
 def screenshot() -> dict:
-    """Take a screenshot and save to Desktop."""
+    """Take a screenshot and save to Desktop. Has a 10-second cooldown to prevent repeat triggers."""
+    global _last_screenshot_time
+    with _screenshot_lock:
+        now = time.time()
+        if now - _last_screenshot_time < 10:
+            remaining = round(10 - (now - _last_screenshot_time))
+            return {"action": "screenshot", "status": "cooldown",
+                    "reply": f"Screenshot taken just now. Please wait {remaining}s before taking another."}
+        _last_screenshot_time = now
     try:
         from PIL import ImageGrab
         desktop = Path.home() / "Desktop"
@@ -291,31 +421,87 @@ def screenshot() -> dict:
         fname = desktop / f"cipher_screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
         img = ImageGrab.grab()
         img.save(fname)
-        return {"action": "screenshot", "path": str(fname), "status": "ok"}
+        return {"action": "screenshot", "path": str(fname), "status": "ok",
+                "reply": f"Screenshot saved to Desktop as {fname.name}."}
     except ImportError:
-        return {"action": "screenshot", "status": "error", "detail": "Pillow not installed"}
+        return {"action": "screenshot", "status": "error", "detail": "Pillow not installed",
+                "reply": "Screenshot failed: install Pillow (pip install pillow)."}
     except Exception as e:
-        return {"action": "screenshot", "status": "error", "detail": str(e)}
+        return {"action": "screenshot", "status": "error", "detail": str(e),
+                "reply": f"Screenshot failed: {e}"}
+
+
+def _windows_set_volume(level: int) -> bool:
+    """Set Windows master volume. Tries pycaw first, then PowerShell COM fallback."""
+    scalar = round(level / 100.0, 6)
+    # Method 1: pycaw (preferred)
+    try:
+        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+        from comtypes import CLSCTX_ALL
+        devices = AudioUtilities.GetSpeakers()
+        interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+        vol = interface.QueryInterface(IAudioEndpointVolume)
+        vol.SetMasterVolumeLevelScalar(scalar, None)
+        print(f"[Volume] pycaw -> {level}%")
+        return True
+    except Exception as e:
+        print(f"[Volume] pycaw failed ({e}), using PowerShell...")
+    # Method 2: PowerShell + inline C# (no extra packages needed)
+    # IAudioEndpointVolume vtable after IUnknown (0-2):
+    #   3:RegisterControlChangeNotify  4:UnregisterControlChangeNotify
+    #   5:GetChannelCount  6:SetMasterVolumeLevel(dB)  7:GetMasterVolumeLevel(dB)
+    #   8:SetMasterVolumeLevelScalar  <- 5 gap methods needed
+    cs_type = (
+        'using System; using System.Runtime.InteropServices;\n'
+        '[ComImport,Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDev {}\n'
+        '[Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"),InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]\n'
+        'interface IMMEnum { int _x(); [PreserveSig] int GetDef(int a,int b,out IMMD d); }\n'
+        '[Guid("D666063F-1587-4E43-81F1-B948E807363F"),InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]\n'
+        'interface IMMD { [PreserveSig] int Act(ref Guid g,uint c,IntPtr p,[MarshalAs(UnmanagedType.IUnknown)] out object v); }\n'
+        '[Guid("5CDF2C82-841E-4546-9722-0CF74078229A"),InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]\n'
+        'interface IAEVol { int _1();int _2();int _3();int _4();int _5(); [PreserveSig] int SetScalar(float v,Guid g); }\n'
+        'public static class VC {\n'
+        '    public static void Set(float v) {\n'
+        '        var e=(IMMEnum)(new MMDev()); IMMD d; e.GetDef(0,1,out d);\n'
+        '        Guid g=new Guid("5CDF2C82-841E-4546-9722-0CF74078229A"); object ep; d.Act(ref g,23,IntPtr.Zero,out ep);\n'
+        '        ((IAEVol)ep).SetScalar(v,Guid.Empty);\n'
+        '    }\n'
+        '}'
+    )
+    ps_script = f"Add-Type -TypeDefinition @'\n{cs_type}\n'@ -ErrorAction Stop\n[VC]::Set([float]{scalar})\n"
+    try:
+        tmp = Path(os.environ.get('TEMP', str(Path(__file__).parent))) / '_cv.ps1'
+        tmp.write_text(ps_script, encoding='utf-8')
+        r = subprocess.run(
+            ['powershell', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', str(tmp)],
+            capture_output=True, text=True, timeout=12
+        )
+        try: tmp.unlink()
+        except: pass
+        if r.returncode == 0:
+            print(f"[Volume] PowerShell -> {level}%")
+            return True
+        print(f"[Volume] PS error: {r.stderr[:200]}")
+    except Exception as e:
+        print(f"[Volume] PS exception: {e}")
+    return False
 
 
 def set_volume(level: int) -> dict:
-    """Set system volume (0-100). Windows/macOS/Linux."""
+    """Set system volume (0-100). Works on Windows/macOS/Linux."""
     level = max(0, min(100, level))
     if OS == "Windows":
-        try:
-            from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-            from comtypes import CLSCTX_ALL
-            devices = AudioUtilities.GetSpeakers()
-            interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-            vol = interface.QueryInterface(IAudioEndpointVolume)
-            vol.SetMasterVolumeLevelScalar(level / 100.0, None)
-        except Exception as e:
-            print(f"[Volume] {e}")
+        ok = _windows_set_volume(level)
+        reply = f"Volume set to {level}%." if ok else f"Volume command sent ({level}%) — if unchanged, run: pip install pycaw"
     elif OS == "Darwin":
         run_cmd(f"osascript -e 'set volume output volume {level}'")
+        reply = f"Volume set to {level}%."
     elif OS == "Linux":
         run_cmd(f"amixer -q sset Master {level}%")
-    return {"action": "set_volume", "level": level, "status": "ok"}
+        reply = f"Volume set to {level}%."
+    else:
+        reply = f"Volume control not supported on {OS}."
+    return {"action": "set_volume", "level": level, "status": "ok", "reply": reply}
 
 
 # ── Weather ──────────────────────────────────────────────────────────────
@@ -400,13 +586,15 @@ def get_battery_cpu() -> dict:
     try:
         cpu = _psutil.cpu_percent(interval=0.5)
         mem = _psutil.virtual_memory()
-        mem_used = round(mem.used / 1e9, 1)
-        mem_total = round(mem.total / 1e9, 1)
+        # Use GiB (1024^3) so a 64 GiB laptop shows ~64 not 68 (GB vs GiB difference)
+        _GiB = 1024 ** 3
+        mem_used  = round(mem.used  / _GiB, 1)
+        mem_total = round(mem.total / _GiB, 1)
         battery = _psutil.sensors_battery()
-        parts = [f"CPU: {cpu}%", f"RAM: {mem_used}GB / {mem_total}GB ({mem.percent}%)"]
+        parts = [f"CPU: {cpu}%", f"RAM: {mem_used} GiB / {mem_total} GiB ({mem.percent}%)"]
         if battery:
-            status = "charging" if battery.power_plugged else "on battery"
-            parts.append(f"Battery: {round(battery.percent)}% ({status})")
+            plug_status = "charging" if battery.power_plugged else "on battery"
+            parts.append(f"Battery: {round(battery.percent)}% ({plug_status})")
         else:
             parts.append("Battery: not detected (desktop?)")
         return {"action": "battery_cpu", "reply": " | ".join(parts)}
@@ -459,7 +647,7 @@ def focus_mode_off() -> dict:
     return {"action": "focus_mode", "reply": "Focus mode OFF. You're free to relax again."}
 
 
-# ── Window foreground (switch to a running app) ─────────────────────────────
+# ── Switch to window (tab switcher) ─────────────────────────────
 def switch_to_window(keyword: str) -> dict:
     if OS != "Windows":
         return {"action": "switch_window", "reply": "Window switching is only supported on Windows."}
@@ -487,12 +675,50 @@ def switch_to_window(keyword: str) -> dict:
         return {"action": "switch_window", "reply": f"Couldn't switch window: {e}"}
 
 
+# ── Background Apps ───────────────────────────────────────────────────────────
+def get_running_apps() -> dict:
+    """Get a list of currently running visible windows/apps."""
+    if OS != "Windows":
+        return {"action": "running_apps", "apps": [], "reply": "This feature is only supported on Windows."}
+    try:
+        import ctypes
+        apps = []
+        def enum_handler(hwnd, _):
+            length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
+            if length > 0 and ctypes.windll.user32.IsWindowVisible(hwnd):
+                buf = ctypes.create_unicode_buffer(length + 1)
+                ctypes.windll.user32.GetWindowTextW(hwnd, buf, length + 1)
+                title = buf.value
+                # Filter out default Windows 10/11 system windows
+                ignore_titles = ["Program Manager", "Settings", "Microsoft Text Input Application", "Taskbar", "Snipping Tool"]
+                if title not in ignore_titles and "cipher" not in title.lower() and "gemini" not in title.lower() and "default ime" not in title.lower() and "msctfime" not in title.lower():
+                    apps.append(title)
+            return True
+            
+        WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_int, ctypes.c_int)
+        ctypes.windll.user32.EnumWindows(WNDENUMPROC(enum_handler), 0)
+        
+        unique_apps = list(set(apps))
+        
+        if not unique_apps:
+            return {"action": "running_apps", "apps": [], "reply": "No background applications found."}
+            
+        return {"action": "running_apps", "apps": unique_apps, "reply": f"Found {len(unique_apps)} background applications."}
+    except Exception as e:
+        print(f"[CIPHER] get_running_apps error: {e}")
+        return {"action": "running_apps", "apps": [], "reply": f"Couldn't get running applications."}
+
 # ── Intent router ─────────────────────────────────────────────────────────────
+
 
 def route_intent(text: str):
     """
     Try to match a local OS intent before calling Gemini.
     Returns a dict result if handled locally, else None.
+
+    COMMAND SEMANTICS (strictly enforced):
+      'open X'         -> prefer browser / SITE_MAP first, then APP_MAP, never universal_launch
+      'launch/start/run X' -> prefer APP_MAP / universal_launch (OS app), then SITE_MAP as fallback
     """
     global chat_history
     original = text
@@ -502,50 +728,69 @@ def route_intent(text: str):
 
     print(f"[CIPHER] Processing: {t}")
 
-    # ── Open app (check FIRST before website so "open calculator" never misroutes) ──
-    open_trigger = re.search(r'\b(?:open|launch|start|run)\b', t)
-    if open_trigger:
-        # Build sorted list (longest keys first) to avoid partial matches
-        sorted_apps = sorted(APP_MAP.keys(), key=len, reverse=True)
-        for app_name in sorted_apps:
-            pattern = r'\b(?:open|launch|start|run)\s+(?:the\s+)?' + re.escape(app_name) + r'\b'
-            if re.search(pattern, t):
-                result = open_app(app_name)
-                if result["status"] == "ok":
-                    return result
-                # Not found on this OS — fall through
+    # ── Detect verb intent ────────────────────────────────────────────
+    has_open   = bool(re.search(r'\bopen\b', t))
+    has_launch = bool(re.search(r'\b(?:launch|start|run)\b', t))
 
-        # Universal fallback: extract what comes after the trigger word
-        # and try to launch it directly (handles any installed Windows app)
-        raw_m = re.search(r'\b(?:open|launch|start|run)\s+(?:the\s+)?(.+?)\s*$', t)
-        if raw_m:
-            raw_name = raw_m.group(1).strip()
-            # Only if it's not a known website and not too long (probably a question)
-            if raw_name not in SITE_MAP and '.' not in raw_name and len(raw_name.split()) <= 3:
-                result = universal_launch(raw_name)
-                return result
-
-    # ── Open website ──────────────────────────────────────────────────────────
-    # Priority 1: Explicit "open" trigger
-    if open_trigger:
-        # Extract word after open/go to/navigate etc.
-        m = re.search(r'\b(?:open|go\s+to|navigate\s+to|visit|show)\s+(?:website\s+)?(?:the\s+)?([a-z0-9.\-]+)', t)
+    # ── 'open X' branch: browser/website first ───────────────────────
+    if has_open and not has_launch:
+        # Extract the target name after 'open [the] ...'
+        m = re.search(r'\bopen\s+(?:the\s+)?(.+?)\s*$', t)
         if m:
-            target = m.group(1).strip()
-            if target in SITE_MAP:
-                return open_website(SITE_MAP[target], target.capitalize())
-            # Bare name like "gmail" not in SITE_MAP but looks like a site
-            if target not in APP_MAP:  # avoid re-opening apps
-                url_target = target if '.' in target else f"{target}.com"
-                return open_website(url_target, target.capitalize())
+            raw = m.group(1).strip()
+            # 1. Known site → always open in browser
+            if raw in SITE_MAP:
+                return open_website(SITE_MAP[raw], raw.capitalize())
+            # 2. Multi-word site check (e.g. 'prime video')
+            for site_name in sorted(SITE_MAP.keys(), key=len, reverse=True):
+                if raw.startswith(site_name) or raw == site_name:
+                    return open_website(SITE_MAP[site_name], site_name.capitalize())
+            # 3. Known desktop app → launch it
+            for app_name in sorted(APP_MAP.keys(), key=len, reverse=True):
+                if raw == app_name or raw.startswith(app_name):
+                    result = open_app(app_name)
+                    if result['status'] == 'ok':
+                        return result
+            # 4. Looks like a URL/domain → open in browser
+            if '.' in raw:
+                return open_website(raw, raw.split('.')[0].capitalize())
+            # 5. Unknown short name → try as website first (.com)
+            if len(raw.split()) <= 2:
+                return open_website(f"https://www.{raw}.com", raw.capitalize())
 
-    # Priority 2: Site name anywhere with a navigation verb
-    NAV_VERBS = ['open', 'go to', 'navigate', 'visit', 'show', 'launch']
-    sorted_sites = sorted(SITE_MAP.keys(), key=len, reverse=True)
-    for site_name in sorted_sites:
-        if site_name in t:
-            if any(v in t for v in NAV_VERBS) and not any(w in t for w in ['what', 'explain', 'tell', 'about', 'how']):
-                return open_website(SITE_MAP[site_name], site_name.capitalize())
+    # ── 'launch/start/run X' branch: OS app first ────────────────────
+    if has_launch:
+        m = re.search(r'\b(?:launch|start|run)\s+(?:the\s+)?(.+?)\s*$', t)
+        if m:
+            raw = m.group(1).strip()
+            # 1. Known desktop app → launch
+            for app_name in sorted(APP_MAP.keys(), key=len, reverse=True):
+                if raw == app_name or raw.startswith(app_name):
+                    result = open_app(app_name)
+                    if result['status'] == 'ok':
+                        return result
+            # 2. Not in APP_MAP → try universal OS launcher
+            if '.' not in raw and len(raw.split()) <= 3:
+                return universal_launch(raw)
+            # 3. If it looks like a web-only thing, fall back to browser
+            if raw in SITE_MAP:
+                return open_website(SITE_MAP[raw], raw.capitalize())
+
+    # ── 'open' with launch verb also present (edge case) ────────────
+    if has_open and has_launch:
+        m = re.search(r'\b(?:open|launch|start|run)\s+(?:the\s+)?(.+?)\s*$', t)
+        if m:
+            raw = m.group(1).strip()
+            if raw in SITE_MAP:
+                return open_website(SITE_MAP[raw], raw.capitalize())
+            for app_name in sorted(APP_MAP.keys(), key=len, reverse=True):
+                if raw == app_name or raw.startswith(app_name):
+                    result = open_app(app_name)
+                    if result['status'] == 'ok':
+                        return result
+            return universal_launch(raw)
+
+    open_trigger = has_open or has_launch
 
     # ── YouTube search ────────────────────────────────────────────────────────
     yt_patterns = [
@@ -575,14 +820,16 @@ def route_intent(text: str):
                 return open_website(f"https://www.google.com/search?q={query.replace(' ', '+')}", f"Google: {query}")
 
     # ── System info ───────────────────────────────────────────────────────────
-    if any(kw in t for kw in ["system info", "system information", "what os", "my system", "about my computer", "computer info"]):
+    if any(kw in t for kw in ["system info", "system information", "what os", "my system", "about my computer", "computer info", "device info", "hardware info"]):
         info = get_system_info()
         return {
             "action": "system_info",
             "reply": (
-                f"System: {info['os']} {info['version']}\n"
-                f"Machine: {info['machine']} | Processor: {info['processor']}\n"
-                f"Time: {info['time']}  Date: {info['date']}"
+                f"💻 System: {info['os']}\n"
+                f"🖥  Host: {info.get('hostname', 'Unknown')}\n"
+                f"⚙️  CPU: {info['processor']}\n"
+                f"🧠 RAM: {info.get('ram', 'Unknown')}\n"
+                f"🕐 Time: {info['time']}  |  📅 Date: {info['date']}"
             ),
         }
 
@@ -593,8 +840,13 @@ def route_intent(text: str):
     # ── Volume ────────────────────────────────────────────────────────────────
     vol_patterns = [
         r'set\s+(?:the\s+)?volume\s+(?:to\s+)?(\d+)',
-        r'volume\s+(\d+)',
-        r'change\s+volume\s+to\s+(\d+)',
+        r'volume\s+(?:to\s+|at\s+|level\s+)?(\d+)',
+        r'change\s+(?:the\s+)?volume\s+(?:to\s+)?(\d+)',
+        r'(\d+)\s*(?:percent|%)\s*volume',
+        r'volume\s+(?:to\s+)?(\d+)\s*(?:percent|%)?',
+        r'set\s+(?:it\s+)?to\s+(\d+)\s*(?:percent|%)?(?:\s+volume)?',
+        r'(?:make|put)\s+(?:the\s+)?volume\s+(?:at\s+)?(\d+)',
+        r'(\d+)\s+volume',
     ]
     for pattern in vol_patterns:
         match = re.search(pattern, t)
@@ -641,6 +893,31 @@ def route_intent(text: str):
             except:
                 pass
         return {"action": "unmute", "status": "ok", "reply": "Volume unmuted."}
+
+    # ── Media Control (Play/Pause/Next/Prev) ──────────────────────────────────
+    if any(kw in t for kw in ["pause music", "resume music", "play music", "pause song", "resume song", "play/pause", "pause playback"]):
+        if OS == "Windows":
+            import ctypes
+            ctypes.windll.user32.keybd_event(0xB3, 0, 0, 0)  # VK_MEDIA_PLAY_PAUSE
+            ctypes.windll.user32.keybd_event(0xB3, 0, 2, 0)
+            return {"action": "media_play_pause", "reply": "Toggling playback."}
+        return {"action": "media_play_pause", "reply": "Media controls only supported on Windows."}
+
+    if any(kw in t for kw in ["next song", "next track", "skip song", "skip track"]):
+        if OS == "Windows":
+            import ctypes
+            ctypes.windll.user32.keybd_event(0xB5, 0, 0, 0)  # VK_MEDIA_NEXT_TRACK
+            ctypes.windll.user32.keybd_event(0xB5, 0, 2, 0)
+            return {"action": "media_next", "reply": "Playing next track."}
+        return {"action": "media_next", "reply": "Media controls only supported on Windows."}
+
+    if any(kw in t for kw in ["previous song", "previous track", "prev song", "prev track", "go back song"]):
+        if OS == "Windows":
+            import ctypes
+            ctypes.windll.user32.keybd_event(0xB6, 0, 0, 0)  # VK_MEDIA_PREV_TRACK
+            ctypes.windll.user32.keybd_event(0xB6, 0, 2, 0)
+            return {"action": "media_prev", "reply": "Playing previous track."}
+        return {"action": "media_prev", "reply": "Media controls only supported on Windows."}
 
     # ── Date / time ───────────────────────────────────────────────────────────
     if any(kw in t for kw in ["what time", "what's the time", "current time", "time is it"]):
@@ -702,6 +979,10 @@ def route_intent(text: str):
     if any(kw in t for kw in ["focus mode off", "disable focus", "stop focus", "end focus"]):
         return focus_mode_off()
 
+    # ── Background Apps ───────────────────────────────────────────────────────
+    if any(kw in t for kw in ["background apps", "running apps", "what applications are running", "what's running", "apps running", "running applications"]):
+        return get_running_apps()
+
     # ── Switch to window (tab switcher) ──────────────────────────────
     switch_m = re.search(r'(?:switch to|go to|bring up|show)\s+(?:the\s+)?([a-z0-9]+)\s+(?:tab|window|app)', t)
     if switch_m:
@@ -722,17 +1003,31 @@ def route_intent(text: str):
         return close_window_by_title(keyword)
 
     # ── Close app by name ─────────────────────────────────────────────────────
-    # e.g. "close whatsapp", "close spotify app", "close word"
+    # e.g. "close whatsapp", "close spotify", "close word", "close the chrome app"
     close_app_match = re.search(
-        r'\b(?:close|quit|exit|kill)\b\s+(?:the\s+)?(.+?)\s*(?:\bapp\b|\bapplication\b)?\s*$', t
+        r'\b(?:close|quit|exit|kill)\b\s+(?:the\s+)?([a-z0-9\s]+?)(?:\s+(?:app|application|program|software|window|now))?\s*$', t
     )
     if close_app_match:
-        target = close_app_match.group(1).strip().rstrip()
-        # Exclude cases that are already handled above (tabs/windows)
+        target = close_app_match.group(1).strip()
+        # Exclude cases that are already handled above (tabs/windows/browser)
         if not any(w in t for w in ['tab', 'window', 'page']):
-            return close_app(target)
+            if target:  # Don't call with empty string
+                return close_app(target)
 
-    return None  # Not handled locally → fall through to Gemini
+    # ── Sleep / Stop Listening ────────────────────────────────────────────────
+    SLEEP_KWS = [
+        "cipher sleep", "go to sleep", "sleep cipher", "stop listening",
+        "goodbye cipher", "bye cipher", "cipher goodbye", "take a break",
+        "cipher stop", "stop cipher", "that's all", "thats all",
+        "i'm done", "im done", "cipher rest", "go to rest", "sleep now",
+    ]
+    if any(kw in t for kw in SLEEP_KWS):
+        return {
+            "action": "sleep",
+            "reply": "Going to sleep. Mic off. Click the mic icon to wake me up."
+        }
+
+    return None  # Not handled locally -> fall through to Gemini
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -900,8 +1195,11 @@ def chat():
 
     print(f"[CIPHER] Received: {user_input}")
 
-    # ── "answer this" bypass → skip local routing, force Gemini ──────────────
-    answer_this = re.match(r'^(?:answer\s+this|gemini\s+answer|ai\s+answer)\s+(.+)', user_input, re.IGNORECASE)
+    # ── "answer this" / "ask ai" bypass → skip local routing, force Gemini ─────
+    answer_this = re.match(
+        r'^(?:answer\s+this|ask\s+ai|ask\s+gemini|ai\s+ask|gemini\s+answer|ai\s+answer)\s*[:\-]?\s*(.+)',
+        user_input, re.IGNORECASE
+    )
     if answer_this:
         user_input = answer_this.group(1).strip()
         # fall straight through to Gemini below (skip local intent)
@@ -964,6 +1262,41 @@ def sysinfo():
     return jsonify(get_system_info())
 
 
+@app.route("/sysstats", methods=["GET"])
+def sysstats():
+    if not _psutil:
+        return jsonify({"error": "psutil not installed"}), 500
+    try:
+        # Use interval=None to read CPU non-blockingly
+        cpu = _psutil.cpu_percent(interval=None)
+        mem = _psutil.virtual_memory()
+        _GiB = 1024 ** 3
+        ram_used = round(mem.used / _GiB, 1)
+        ram_total = round(mem.total / _GiB, 1)
+        ram_percent = mem.percent
+        
+        battery = _psutil.sensors_battery()
+        battery_data = {
+            "present": False,
+            "percent": 0,
+            "charging": False
+        }
+        if battery:
+            battery_data["present"] = True
+            battery_data["percent"] = round(battery.percent)
+            battery_data["charging"] = battery.power_plugged
+            
+        return jsonify({
+            "cpu": cpu,
+            "ram_used": ram_used,
+            "ram_total": ram_total,
+            "ram_percent": ram_percent,
+            "battery": battery_data
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _build_local_reply(result: dict) -> str:
@@ -1007,7 +1340,15 @@ if __name__ == "__main__":
     print("="*36)
     print()
     print(f"[CIPHER] Server starting on port {port}")
-    print(f"[CIPHER] Open the app at: http://localhost:{port}/app")
-    print("[CIPHER] API ready at:    http://localhost:{}/chat".format(port))
+    print(f"[CIPHER] Open the app at: https://localhost:{port}/cipher.html")
+    print("[CIPHER] API ready at:    https://localhost:{}/chat".format(port))
+    print("[CIPHER] NOTE: Your browser may warn you about an unsafe certificate.")
+    print("         Click 'Advanced' -> 'Proceed to localhost' to continue.")
     print()
-    app.run(host="0.0.0.0", port=port, debug=False)
+    try:
+        app.run(host="0.0.0.0", port=port, debug=False, ssl_context='adhoc')
+    except Exception as e:
+        print(f"[CIPHER] ERROR starting HTTPS server: {e}")
+        print("         Please ensure you have installed: pip install pyopenssl cryptography")
+        print("         Falling back to HTTP (mic permissions will NOT be saved)...")
+        app.run(host="0.0.0.0", port=port, debug=False)

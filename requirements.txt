@@ -1,12 +1,16 @@
 flask>=3.0.0
 flask-cors>=4.0.0
-google-generativeai>=0.7.0
+google-genai>=1.0.0
 python-dotenv>=1.0.0
 Pillow>=10.0.0
-pycaw>=20240210
-comtypes>=1.4.1
-pywin32>=306
 psutil>=7.2.2
 pyperclip>=1.11.0
 requests>=2.31.0
-gunicorn>=21.2.0
+pyopenssl>=24.0.0
+cryptography>=42.0.0
+
+# Platform-specific dependencies
+pywin32>=306; sys_platform == 'win32'
+comtypes>=1.4.1; sys_platform == 'win32'
+pycaw>=20240210; sys_platform == 'win32'
+gunicorn>=21.2.0; sys_platform != 'win32'
