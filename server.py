@@ -1085,7 +1085,7 @@ def route_intent(text: str):
 
 @app.route("/")
 def index():
-    return redirect(url_for('serve_app'))
+    return redirect("/app")
 
 
 @app.route("/app")
