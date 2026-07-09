@@ -24,18 +24,23 @@ try:
 except ImportError:
     _pyperclip = None
 
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, redirect, url_for
 from flask_cors import CORS
 from google import genai
 from google.genai import types
 
 # ── Load environment ──────────────────────────────────────────────────────────
 load_dotenv()
-API_KEY = os.getenv("GEMINI_API_KEY", "")
+API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 if not API_KEY:
-    print("[CIPHER] WARNING: GEMINI_API_KEY not set in .env")
+    print("[CIPHER] WARNING: GEMINI_API_KEY not set in environment or .env file.")
 
-client = genai.Client(api_key=API_KEY)
+client = None
+if API_KEY:
+    try:
+        client = genai.Client(api_key=API_KEY)
+    except Exception as e:
+        print(f"[CIPHER] ERROR initializing Gemini client: {e}")
 
 # ── Flask & CORS ──────────────────────────────────────────────────────────────
 app = Flask(__name__, static_folder='.', static_url_path='')
@@ -47,6 +52,9 @@ chat_lock = threading.Lock()
 
 # ── OS detection ──────────────────────────────────────────────────────────────
 OS = platform.system()  # 'Windows' | 'Darwin' | 'Linux'
+
+# ── Cloud detection ───────────────────────────────────────────────────────────
+IS_CLOUD = os.environ.get("RENDER") == "true" or os.environ.get("RAILWAY_ENVIRONMENT") is not None
 
 # ── Known app launchers ───────────────────────────────────────────────────────
 APP_MAP = {
@@ -170,6 +178,9 @@ def run_cmd(cmd: str) -> bool:
 
 def universal_launch(app_name: str) -> dict:
     """Try to launch ANY installed Windows app by name. Returns proper status."""
+    if IS_CLOUD:
+        return {"action": "open_app", "app": app_name, "status": "cloud_unsupported",
+                "reply": "Launching local applications is only supported when running CIPHER locally on your device."}
     if OS != "Windows":
         return {"action": "open_app", "app": app_name, "status": "not_found",
                 "reply": f"{app_name.capitalize()} wasn't found on your device."}
@@ -211,6 +222,9 @@ def universal_launch(app_name: str) -> dict:
 def close_app(name: str) -> dict:
     """Close an app by name. Uses psutil to scan all running processes,
     falls back to taskkill on Windows."""
+    if IS_CLOUD:
+        return {"action": "close_app", "app": name,
+                "reply": "Closing local applications is only supported when running CIPHER locally on your device."}
     name_lower = name.lower().strip()
     # Remove trailing noise words that user might say (e.g. "close chrome app" -> "chrome")
     name_lower = re.sub(r'\s+(app|application|program|software|window)$', '', name_lower).strip()
@@ -284,6 +298,9 @@ def close_app(name: str) -> dict:
 
 def close_window_by_title(keyword: str) -> dict:
     """Close a window (e.g. browser tab/window) whose title contains keyword."""
+    if IS_CLOUD:
+        return {"action": "close_window",
+                "reply": "Closing browser windows/tabs is only supported when running CIPHER locally on your device."}
     if OS != "Windows":
         return {"action": "close_window", "reply": f"Window close by title is only supported on Windows."}
     try:
@@ -324,12 +341,16 @@ def open_website(url: str, site_name: str = "") -> dict:
     if not site_name:
         # Derive a clean name from the URL
         site_name = url.replace("https://", "").replace("http://", "").replace("www.", "").split("/")[0].split(".")[0].capitalize()
-    webbrowser.open(url)
+    if not IS_CLOUD:
+        webbrowser.open(url)
     return {"action": "open_website", "url": url, "site_name": site_name, "status": "ok"}
 
 
 def open_app(name: str) -> dict:
     """Open a known desktop application."""
+    if IS_CLOUD:
+        return {"action": "open_app", "app": name, "status": "cloud_unsupported",
+                "reply": f"Opening local applications (like {name.capitalize()}) is only supported when running CIPHER locally on your device."}
     name = name.lower().strip()
     cmd = APP_MAP.get(name, {}).get(OS)
     if cmd:
@@ -406,6 +427,9 @@ _screenshot_lock = threading.Lock()
 
 def screenshot() -> dict:
     """Take a screenshot and save to Desktop. Has a 10-second cooldown to prevent repeat triggers."""
+    if IS_CLOUD:
+        return {"action": "screenshot", "status": "error",
+                "reply": "Taking screenshots is only supported when running CIPHER locally on your device."}
     global _last_screenshot_time
     with _screenshot_lock:
         now = time.time()
@@ -489,6 +513,9 @@ def _windows_set_volume(level: int) -> bool:
 
 def set_volume(level: int) -> dict:
     """Set system volume (0-100). Works on Windows/macOS/Linux."""
+    if IS_CLOUD:
+        return {"action": "set_volume", "level": level, "status": "error",
+                "reply": "Volume control is only supported when running CIPHER locally on your device."}
     level = max(0, min(100, level))
     if OS == "Windows":
         ok = _windows_set_volume(level)
@@ -563,6 +590,8 @@ FOLDER_MAP = {
     "temp":       Path(os.environ.get("TEMP", "/tmp")),
 }
 def open_folder(name: str) -> dict:
+    if IS_CLOUD:
+        return {"action": "open_folder", "reply": "Accessing local folders is only supported when running CIPHER locally on your device."}
     key = name.lower().strip()
     folder = FOLDER_MAP.get(key)
     if not folder:
@@ -596,8 +625,12 @@ def get_battery_cpu() -> dict:
             plug_status = "charging" if battery.power_plugged else "on battery"
             parts.append(f"Battery: {round(battery.percent)}% ({plug_status})")
         else:
-            parts.append("Battery: not detected (desktop?)")
-        return {"action": "battery_cpu", "reply": " | ".join(parts)}
+            parts.append("Battery: not detected")
+        
+        reply = " | ".join(parts)
+        if IS_CLOUD:
+            reply = f"☁️ Cloud Server Stats: {reply} (Note: CIPHER is running in cloud mode)"
+        return {"action": "battery_cpu", "reply": reply}
     except Exception as e:
         return {"action": "battery_cpu", "reply": f"Could not get system stats: {e}"}
 
@@ -631,6 +664,8 @@ def read_notes(n: int = 5) -> dict:
 DISTRACTION_SITES = ["youtube", "instagram", "twitter", "facebook", "reddit", "netflix", "tiktok"]
 DISTRACTION_APPS  = ["spotify", "discord", "steam", "whatsapp"]
 def focus_mode_on() -> dict:
+    if IS_CLOUD:
+        return {"action": "focus_mode", "reply": "Focus mode is only supported when running CIPHER locally on your device."}
     closed = []
     for site in DISTRACTION_SITES:
         r = close_window_by_title(site.capitalize())
@@ -649,6 +684,8 @@ def focus_mode_off() -> dict:
 
 # ── Switch to window (tab switcher) ─────────────────────────────
 def switch_to_window(keyword: str) -> dict:
+    if IS_CLOUD:
+        return {"action": "switch_window", "reply": "Window switching is only supported when running CIPHER locally on your device."}
     if OS != "Windows":
         return {"action": "switch_window", "reply": "Window switching is only supported on Windows."}
     try:
@@ -678,6 +715,8 @@ def switch_to_window(keyword: str) -> dict:
 # ── Background Apps ───────────────────────────────────────────────────────────
 def get_running_apps() -> dict:
     """Get a list of currently running visible windows/apps."""
+    if IS_CLOUD:
+        return {"action": "running_apps", "apps": [], "reply": "Retrieving background applications is only supported when running CIPHER locally on your device."}
     if OS != "Windows":
         return {"action": "running_apps", "apps": [], "reply": "This feature is only supported on Windows."}
     try:
@@ -749,7 +788,7 @@ def route_intent(text: str):
             for app_name in sorted(APP_MAP.keys(), key=len, reverse=True):
                 if raw == app_name or raw.startswith(app_name):
                     result = open_app(app_name)
-                    if result['status'] == 'ok':
+                    if result['status'] in ('ok', 'cloud_unsupported'):
                         return result
             # 4. Looks like a URL/domain → open in browser
             if '.' in raw:
@@ -767,7 +806,7 @@ def route_intent(text: str):
             for app_name in sorted(APP_MAP.keys(), key=len, reverse=True):
                 if raw == app_name or raw.startswith(app_name):
                     result = open_app(app_name)
-                    if result['status'] == 'ok':
+                    if result['status'] in ('ok', 'cloud_unsupported'):
                         return result
             # 2. Not in APP_MAP → try universal OS launcher
             if '.' not in raw and len(raw.split()) <= 3:
@@ -786,7 +825,7 @@ def route_intent(text: str):
             for app_name in sorted(APP_MAP.keys(), key=len, reverse=True):
                 if raw == app_name or raw.startswith(app_name):
                     result = open_app(app_name)
-                    if result['status'] == 'ok':
+                    if result['status'] in ('ok', 'cloud_unsupported'):
                         return result
             return universal_launch(raw)
 
@@ -861,6 +900,8 @@ def route_intent(text: str):
 
     # ── Mute ──────────────────────────────────────────────────────────────────
     if "mute" in t and "unmute" not in t:
+        if IS_CLOUD:
+            return {"action": "mute", "status": "error", "reply": "Mute control is only supported when running CIPHER locally on your device."}
         if OS == "Darwin":
             run_cmd("osascript -e 'set volume output muted true'")
         elif OS == "Linux":
@@ -878,6 +919,8 @@ def route_intent(text: str):
         return {"action": "mute", "status": "ok", "reply": "Volume muted."}
 
     if "unmute" in t:
+        if IS_CLOUD:
+            return {"action": "unmute", "status": "error", "reply": "Volume control is only supported when running CIPHER locally on your device."}
         if OS == "Darwin":
             run_cmd("osascript -e 'set volume output muted false'")
         elif OS == "Linux":
@@ -896,6 +939,8 @@ def route_intent(text: str):
 
     # ── Media Control (Play/Pause/Next/Prev) ──────────────────────────────────
     if any(kw in t for kw in ["pause music", "resume music", "play music", "pause song", "resume song", "play/pause", "pause playback"]):
+        if IS_CLOUD:
+            return {"action": "media_play_pause", "reply": "Media controls are only supported when running CIPHER locally on your device."}
         if OS == "Windows":
             import ctypes
             ctypes.windll.user32.keybd_event(0xB3, 0, 0, 0)  # VK_MEDIA_PLAY_PAUSE
@@ -904,6 +949,8 @@ def route_intent(text: str):
         return {"action": "media_play_pause", "reply": "Media controls only supported on Windows."}
 
     if any(kw in t for kw in ["next song", "next track", "skip song", "skip track"]):
+        if IS_CLOUD:
+            return {"action": "media_next", "reply": "Media controls are only supported when running CIPHER locally on your device."}
         if OS == "Windows":
             import ctypes
             ctypes.windll.user32.keybd_event(0xB5, 0, 0, 0)  # VK_MEDIA_NEXT_TRACK
@@ -912,6 +959,8 @@ def route_intent(text: str):
         return {"action": "media_next", "reply": "Media controls only supported on Windows."}
 
     if any(kw in t for kw in ["previous song", "previous track", "prev song", "prev track", "go back song"]):
+        if IS_CLOUD:
+            return {"action": "media_prev", "reply": "Media controls are only supported when running CIPHER locally on your device."}
         if OS == "Windows":
             import ctypes
             ctypes.windll.user32.keybd_event(0xB6, 0, 0, 0)  # VK_MEDIA_PREV_TRACK
@@ -928,6 +977,8 @@ def route_intent(text: str):
 
     # ── Lock Screen ───────────────────────────────────────────────────────────
     if any(kw in t for kw in ["lock computer", "lock screen", "lock my computer", "lock the computer"]):
+        if IS_CLOUD:
+            return {"action": "lock", "reply": "Locking the computer is only supported when running CIPHER locally on your device."}
         if OS == "Windows":
             run_cmd("rundll32.exe user32.dll,LockWorkStation")
         elif OS == "Darwin":
@@ -1034,7 +1085,7 @@ def route_intent(text: str):
 
 @app.route("/")
 def index():
-    return jsonify({"status": "CIPHER running", "os": OS, "version": "2.5"})
+    return redirect(url_for('serve_app'))
 
 
 @app.route("/app")
@@ -1068,6 +1119,9 @@ def save_traps(data: dict):
 
 def execute_trap(trap: dict) -> dict:
     """Launch all apps + websites in a trap. Returns summary."""
+    if IS_CLOUD:
+        return {"action": "trap_run", "opened": [], "failed": [],
+                "reply": "Traps are only supported when running CIPHER locally on your device."}
     opened, failed = [], []
 
     for app_name in trap.get("apps", []):
@@ -1141,6 +1195,9 @@ def run_trap_route(trap_name):
 
 def close_trap(trap: dict) -> dict:
     """Close all apps + browser windows associated with a trap."""
+    if IS_CLOUD:
+        return {"action": "trap_close", "closed": [], "not_found": [],
+                "reply": "Traps are only supported when running CIPHER locally on your device."}
     closed, failed, not_open = [], [], []
 
     # Close apps via taskkill
@@ -1224,6 +1281,11 @@ def chat():
 
     # 2. Fall back to Gemini
     print("[CIPHER] Forwarding to Gemini...")
+    if not client:
+        return jsonify({
+            "reply": "I am not configured with a Gemini API key yet. Please add your GEMINI_API_KEY environment variable on your Railway service dashboard, then redeploy.",
+            "error": "GEMINI_API_KEY is missing"
+        }), 500
     try:
         with chat_lock:
             chat_history.append({"role": "user", "parts": [{"text": user_input}]})
@@ -1335,7 +1397,7 @@ if __name__ == "__main__":
     print(f"   OS: {OS}")
     print(f"   Port: {port}")
     print(f"   Time: {datetime.now().strftime('%H:%M:%S')}")
-    if os.environ.get("RENDER"):
+    if IS_CLOUD:
         print("   Mode: CLOUD (Action features disabled)")
     print("="*36)
     print()

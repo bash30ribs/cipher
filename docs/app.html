@@ -1774,7 +1774,9 @@
 
   <script>
     /* ── Config ─────────────────────────────────────────────────────── */
-    const SERVER = "https://localhost:5000";
+    const SERVER = window.location.protocol.startsWith("http")
+      ? window.location.origin
+      : "https://localhost:5000";
 
     /* ── DOM refs ──────────────────────────────────────────────────── */
     const messagesEl = document.getElementById("messages");
@@ -1918,6 +1920,16 @@
           statusLabel.textContent = "SLEEPING";
           // Show sleep overlay — only a mic button click can dismiss it
           document.getElementById('sleep-overlay').classList.add('active');
+          return;
+        }
+
+        // ── Open website action: open in a new tab on client ─────────────
+        if (data.action === "open_website") {
+          appendMessage("ai", data.reply || `Opening ${data.meta?.site_name || 'website'}...`, "action");
+          if (data.meta && data.meta.url) {
+            window.open(data.meta.url, '_blank');
+          }
+          if (ttsEnabled) speakText(data.reply || `Opening ${data.meta?.site_name || 'website'}`);
           return;
         }
 
