@@ -985,64 +985,6 @@
       padding: 3px 0;
     }
 
-    /* ── App List ──────────────────────────────────────────────── */
-    .app-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .app-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(255, 255, 255, 0.03);
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-
-    .app-name {
-      font-size: 0.85rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 200px;
-    }
-
-    .app-actions {
-      display: flex;
-      gap: 6px;
-    }
-
-    .app-btn {
-      padding: 4px 8px;
-      font-size: 0.7rem;
-      border-radius: 4px;
-      cursor: pointer;
-      border: none;
-      font-family: var(--font-mono);
-      font-weight: 600;
-      transition: opacity 0.2s;
-    }
-
-    .app-btn:hover {
-      opacity: 0.85;
-    }
-
-    .app-launch {
-      background: var(--accent-soft);
-      color: var(--accent);
-      border: 1px solid var(--accent);
-    }
-
-    .app-close {
-      background: rgba(244, 63, 94, 0.1);
-      color: var(--danger);
-      border: 1px solid var(--danger);
-    }
-
     /* ── Dashboard & Widgets ────────────────────────────────────── */
     #welcome {
       display: flex;
@@ -1077,74 +1019,80 @@
     }
 
     .stat-card {
-      background: var(--surface);
+      background: rgba(21, 24, 30, 0.55);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px 16px;
+      border-radius: 16px;
+      padding: 16px;
       display: flex;
+      flex-direction: column;
       align-items: center;
+      justify-content: center;
       gap: 12px;
       position: relative;
       overflow: hidden;
-      transition: all 0.25s ease;
+      backdrop-filter: blur(16px);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
     }
 
     .stat-card:hover {
       border-color: var(--accent);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(76, 201, 240, 0.08);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(76, 201, 240, 0.12);
+      background: rgba(21, 24, 30, 0.75);
     }
 
-    .stat-icon {
-      font-size: 1.4rem;
+    .stat-gauge-wrapper {
+      position: relative;
+      width: 60px;
+      height: 60px;
       display: grid;
       place-items: center;
+    }
+
+    .progress-ring {
+      transform: rotate(-90deg);
+    }
+
+    .progress-ring-circle-bg {
+      stroke: rgba(255, 255, 255, 0.03);
+    }
+
+    .progress-ring-circle {
+      stroke-dasharray: 138.2;
+      stroke-dashoffset: 138.2;
+      transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .stat-gauge-value {
+      position: absolute;
+      font-size: 0.72rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--text);
     }
 
     .stat-info {
       display: flex;
       flex-direction: column;
-      gap: 2px;
-      flex: 1;
+      align-items: center;
+      text-align: center;
+      gap: 4px;
     }
 
     .stat-label {
       font-size: 0.65rem;
       font-weight: 700;
       color: var(--muted);
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
     }
 
-    .stat-value {
-      font-size: 0.88rem;
-      font-weight: 600;
+    .stat-sub {
+      font-size: 0.7rem;
+      color: var(--muted);
       font-family: var(--font-mono);
-      color: var(--text);
-    }
-
-    .stat-progress-bar {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 3px;
-      background: rgba(255, 255, 255, 0.03);
-    }
-
-    .stat-progress-bar div {
-      height: 100%;
-      background: var(--accent);
-      width: 0;
-      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    #stat-ram-card .stat-progress-bar div {
-      background: #4361ee;
-    }
-
-    #stat-battery-card .stat-progress-bar div {
-      background: var(--success);
+      opacity: 0.85;
     }
 
     .dashboard-section {
@@ -1171,26 +1119,27 @@
     }
 
     .control-btn {
-      background: var(--surface);
+      background: rgba(21, 24, 30, 0.4);
       border: 1px solid var(--border);
       color: var(--text);
       font-family: var(--font-ui);
       font-size: 0.78rem;
       font-weight: 500;
-      padding: 9px 12px;
-      border-radius: 9px;
+      padding: 10px 14px;
+      border-radius: 10px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      transition: all 0.2s;
+      gap: 8px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .control-btn:hover {
       border-color: var(--accent);
       background: var(--accent-soft);
       color: var(--accent);
+      transform: translateY(-1px);
     }
 
     .speed-dial-grid {
@@ -1200,32 +1149,34 @@
     }
 
     .speed-card {
-      background: var(--surface);
+      background: rgba(21, 24, 30, 0.4);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 6px;
+      border-radius: 14px;
+      padding: 14px 6px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       cursor: pointer;
-      transition: all 0.25s ease;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .speed-card:hover {
       border-color: var(--accent);
-      transform: scale(1.05);
+      transform: scale(1.05) translateY(-2px);
       background: var(--accent-soft);
+      box-shadow: 0 6px 20px rgba(76, 201, 240, 0.08);
     }
 
     .speed-icon {
-      width: 36px;
-      height: 36px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
       display: grid;
       place-items: center;
       font-size: 1.15rem;
       background: rgba(255, 255, 255, 0.03);
+      transition: background 0.2s;
     }
 
     .speed-card:hover .speed-icon {
@@ -1247,62 +1198,142 @@
     .search-engine-selector-container {
       display: flex;
       align-items: center;
-      background: rgba(255, 255, 255, 0.02);
       border-right: 1px solid var(--border);
       margin-left: -4px;
-      margin-right: 6px;
-      padding-right: 6px;
+      margin-right: 8px;
+      padding-right: 8px;
     }
 
-    #search-engine-select {
-      background: none;
-      border: none;
-      outline: none;
-      color: var(--accent);
-      font-family: var(--font-ui);
-      font-size: 0.78rem;
-      font-weight: 600;
+    .custom-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dropdown-trigger-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
       cursor: pointer;
-      padding: 4px 6px;
-      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      background: none;
+      border: 1px solid transparent;
+      color: var(--muted);
       transition: all 0.2s;
     }
 
-    #search-engine-select option {
+    .dropdown-trigger-btn:hover,
+    .dropdown-trigger-btn.active {
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    .dropdown-popover {
+      position: absolute;
+      bottom: 46px;
+      left: -8px;
+      width: 180px;
       background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 6px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1001;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .dropdown-popover.open {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateY(0);
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 9px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .dropdown-item:hover {
       color: var(--text);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .dropdown-item.active {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .engine-icon {
+      font-size: 0.95rem;
+      display: grid;
+      place-items: center;
     }
 
     /* ── Tabbed Side Panel ───────────────────────────────────────── */
     .panel-tabs {
       display: flex;
+      position: relative;
+      background: rgba(255, 255, 255, 0.02);
       border-bottom: 1px solid var(--border);
+      padding: 4px;
+      gap: 4px;
       flex-shrink: 0;
+      border-radius: 12px;
+      margin: 10px 14px;
     }
 
     .panel-tab {
       flex: 1;
       background: none;
       border: none;
-      border-bottom: 2px solid transparent;
       color: var(--muted);
       font-family: var(--font-ui);
       font-size: 0.78rem;
       font-weight: 600;
-      padding: 10px 0;
+      padding: 8px 0;
       cursor: pointer;
       transition: all 0.2s;
       text-align: center;
+      position: relative;
+      z-index: 2;
+      border-radius: 8px;
     }
 
     .panel-tab:hover {
       color: var(--text);
-      background: rgba(255, 255, 255, 0.01);
     }
 
     .panel-tab.active {
       color: var(--accent);
-      border-bottom-color: var(--accent);
+    }
+
+    .tab-slider {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      height: calc(100% - 8px);
+      width: calc(33.333% - 5.333px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      z-index: 1;
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 
     .tab-content {
@@ -1315,7 +1346,7 @@
     .tab-content.active {
       display: flex;
     }
-
+    
     /* Specs Tab */
     .specs-card {
       background: var(--bg);
@@ -1499,6 +1530,7 @@
         <button class="trap-close-btn" onclick="toggleTrapPanel()" title="Close panel">✕</button>
       </div>
       <div class="panel-tabs">
+        <div class="tab-slider" id="tab-slider"></div>
         <button class="panel-tab active" id="tab-traps" onclick="switchPanelTab('traps')">🪤 Traps</button>
         <button class="panel-tab" id="tab-history" onclick="switchPanelTab('history')">📜 History</button>
         <button class="panel-tab" id="tab-specs" onclick="switchPanelTab('specs')">⚙️ Specs</button>
@@ -1547,35 +1579,43 @@
         <!-- System Stats widgets (polled live) -->
         <div class="dashboard-stats-grid">
           <div class="stat-card" id="stat-cpu-card">
-            <div class="stat-icon">💻</div>
+            <div class="stat-gauge-wrapper">
+              <svg class="progress-ring" width="60" height="60">
+                <circle class="progress-ring-circle-bg" stroke="rgba(255,255,255,0.03)" stroke-width="3.5" fill="transparent" r="22" cx="30" cy="30"/>
+                <circle class="progress-ring-circle" id="stat-cpu-circle" stroke="var(--accent)" stroke-width="3.5" fill="transparent" r="22" cx="30" cy="30"/>
+              </svg>
+              <span class="stat-gauge-value" id="stat-cpu-val">0%</span>
+            </div>
             <div class="stat-info">
               <span class="stat-label">CPU LOAD</span>
-              <span class="stat-value" id="stat-cpu-val">0%</span>
-            </div>
-            <div class="stat-progress-bar">
-              <div id="stat-cpu-bar" style="width: 0%"></div>
             </div>
           </div>
-
+          
           <div class="stat-card" id="stat-ram-card">
-            <div class="stat-icon">🧠</div>
+            <div class="stat-gauge-wrapper">
+              <svg class="progress-ring" width="60" height="60">
+                <circle class="progress-ring-circle-bg" stroke="rgba(255,255,255,0.03)" stroke-width="3.5" fill="transparent" r="22" cx="30" cy="30"/>
+                <circle class="progress-ring-circle" id="stat-ram-circle" stroke="#4361ee" stroke-width="3.5" fill="transparent" r="22" cx="30" cy="30"/>
+              </svg>
+              <span class="stat-gauge-value" id="stat-ram-val">0%</span>
+            </div>
             <div class="stat-info">
               <span class="stat-label">RAM USED</span>
-              <span class="stat-value" id="stat-ram-val">0 GB / 0 GB</span>
-            </div>
-            <div class="stat-progress-bar">
-              <div id="stat-ram-bar" style="width: 0%"></div>
+              <span class="stat-sub" id="stat-ram-sub">0/0 GB</span>
             </div>
           </div>
 
           <div class="stat-card" id="stat-battery-card">
-            <div class="stat-icon">🔋</div>
+            <div class="stat-gauge-wrapper">
+              <svg class="progress-ring" width="60" height="60">
+                <circle class="progress-ring-circle-bg" stroke="rgba(255,255,255,0.03)" stroke-width="3.5" fill="transparent" r="22" cx="30" cy="30"/>
+                <circle class="progress-ring-circle" id="stat-battery-circle" stroke="var(--success)" stroke-width="3.5" fill="transparent" r="22" cx="30" cy="30"/>
+              </svg>
+              <span class="stat-gauge-value" id="stat-battery-val">--%</span>
+            </div>
             <div class="stat-info">
               <span class="stat-label">BATTERY</span>
-              <span class="stat-value" id="stat-battery-val">Checking...</span>
-            </div>
-            <div class="stat-progress-bar">
-              <div id="stat-battery-bar" style="width: 0%"></div>
+              <span class="stat-sub" id="stat-battery-sub">Checking...</span>
             </div>
           </div>
         </div>
@@ -1630,13 +1670,35 @@
     <div class="input-bar">
       <div class="input-row">
         <div class="search-engine-selector-container">
-          <select id="search-engine-select" onchange="updateSearchPlaceholder()">
-            <option value="default">🤖 AI/Local</option>
-            <option value="google">🔍 Google</option>
-            <option value="youtube">📺 YouTube</option>
-            <option value="bing">🔎 Bing</option>
-            <option value="duckduckgo">🦆 DuckDuckGo</option>
-          </select>
+          <div class="custom-dropdown">
+            <button class="dropdown-trigger-btn" onclick="toggleSearchDropdown(event)" id="search-trigger-btn" title="Select Search Engine">
+              <span id="selected-engine-icon">🤖</span>
+            </button>
+            <div class="dropdown-popover" id="search-popover">
+              <div class="dropdown-item active" onclick="selectSearchEngine('default', this)">
+                <span class="engine-icon">🤖</span>
+                <span class="engine-name">AI / Local</span>
+              </div>
+              <div class="dropdown-item" onclick="selectSearchEngine('google', this)">
+                <span class="engine-icon">🔍</span>
+                <span class="engine-name">Google Search</span>
+              </div>
+              <div class="dropdown-item" onclick="selectSearchEngine('youtube', this)">
+                <span class="engine-icon">📺</span>
+                <span class="engine-name">YouTube Search</span>
+              </div>
+              <div class="dropdown-item" onclick="selectSearchEngine('bing', this)">
+                <span class="engine-icon">🔎</span>
+                <span class="engine-name">Bing Search</span>
+              </div>
+              <div class="dropdown-item" onclick="selectSearchEngine('duckduckgo', this)">
+                <span class="engine-icon">🦆</span>
+                <span class="engine-name">DuckDuckGo</span>
+              </div>
+            </div>
+            <!-- Hidden input to maintain code compatibility with sendMessage -->
+            <input type="hidden" id="search-engine-select" value="default" />
+          </div>
         </div>
         <textarea id="user-input" rows="1" placeholder="Ask CIPHER anything…" autocomplete="off"
           spellcheck="false"></textarea>
@@ -1819,8 +1881,7 @@
       inputEl.value = ""; inputEl.style.height = "auto";
 
       // Reset select
-      document.getElementById("search-engine-select").value = "default";
-      updateSearchPlaceholder();
+      selectSearchEngine('default');
 
       sendBtn.disabled = (_pendingSends > 0);
       setStatus("thinking");
@@ -2435,38 +2496,47 @@
         const res = await fetch(SERVER + "/sysstats");
         if (!res.ok) throw new Error("Stats fetch failed");
         const data = await res.json();
+        
+        // Circular math: Circumference is 138.2
+        const CIRCUMFERENCE = 138.2;
 
         // Update CPU
         const cpuPercent = Math.round(data.cpu || 0);
         document.getElementById("stat-cpu-val").textContent = cpuPercent + "%";
-        document.getElementById("stat-cpu-bar").style.width = cpuPercent + "%";
-
+        const cpuOffset = CIRCUMFERENCE - (cpuPercent / 100) * CIRCUMFERENCE;
+        document.getElementById("stat-cpu-circle").style.strokeDashoffset = cpuOffset;
+        
         // Update RAM
         const ramUsed = data.ram_used || 0;
         const ramTotal = data.ram_total || 0;
         const ramPercent = Math.round(data.ram_percent || 0);
-        document.getElementById("stat-ram-val").textContent = `${ramUsed} GB / ${ramTotal} GB (${ramPercent}%)`;
-        document.getElementById("stat-ram-bar").style.width = ramPercent + "%";
-
+        document.getElementById("stat-ram-val").textContent = ramPercent + "%";
+        document.getElementById("stat-ram-sub").textContent = `${ramUsed}/${ramTotal} GB`;
+        const ramOffset = CIRCUMFERENCE - (ramPercent / 100) * CIRCUMFERENCE;
+        document.getElementById("stat-ram-circle").style.strokeDashoffset = ramOffset;
+        
         // Update Battery
         const battery = data.battery || {};
         if (battery.present) {
-          const plug = battery.charging ? " (Charging)" : "";
-          document.getElementById("stat-battery-val").textContent = `${battery.percent}%${plug}`;
-          document.getElementById("stat-battery-bar").style.width = battery.percent + "%";
-
-          const bar = document.getElementById("stat-battery-bar");
+          document.getElementById("stat-battery-val").textContent = battery.percent + "%";
+          const plug = battery.charging ? "Charging" : "Discharging";
+          document.getElementById("stat-battery-sub").textContent = plug;
+          const batteryOffset = CIRCUMFERENCE - (battery.percent / 100) * CIRCUMFERENCE;
+          document.getElementById("stat-battery-circle").style.strokeDashoffset = batteryOffset;
+          
+          const bar = document.getElementById("stat-battery-circle");
           if (battery.percent < 20) {
-            bar.style.backgroundColor = "var(--danger)";
+            bar.style.stroke = "var(--danger)";
           } else if (battery.percent < 50) {
-            bar.style.backgroundColor = "orange";
+            bar.style.stroke = "orange";
           } else {
-            bar.style.backgroundColor = "var(--success)";
+            bar.style.stroke = "var(--success)";
           }
         } else {
-          document.getElementById("stat-battery-val").textContent = "A/C Power";
-          document.getElementById("stat-battery-bar").style.width = "100%";
-          document.getElementById("stat-battery-bar").style.backgroundColor = "var(--success)";
+          document.getElementById("stat-battery-val").textContent = "100%";
+          document.getElementById("stat-battery-sub").textContent = "A/C Power";
+          document.getElementById("stat-battery-circle").style.strokeDashoffset = 0;
+          document.getElementById("stat-battery-circle").style.stroke = "var(--success)";
         }
       } catch (err) {
         console.warn("[CIPHER] Stats load error:", err);
@@ -2489,9 +2559,8 @@
 
     /* ── Search Engine Selector Placeholder Helper ───────────────── */
     function updateSearchPlaceholder() {
-      const select = document.getElementById("search-engine-select");
+      const engine = document.getElementById("search-engine-select").value;
       const textarea = document.getElementById("user-input");
-      const engine = select.value;
       if (engine === "default") {
         textarea.placeholder = "Ask CIPHER anything…";
       } else if (engine === "google") {
@@ -2504,6 +2573,58 @@
         textarea.placeholder = "Search DuckDuckGo…";
       }
     }
+
+    /* ── Custom Dropdown Logic ──────────────────────────────────── */
+    function toggleSearchDropdown(e) {
+      e.stopPropagation();
+      const popover = document.getElementById("search-popover");
+      const btn = document.getElementById("search-trigger-btn");
+      popover.classList.toggle("open");
+      btn.classList.toggle("active", popover.classList.contains("open"));
+    }
+
+    function selectSearchEngine(engine, element) {
+      const hiddenInput = document.getElementById("search-engine-select");
+      hiddenInput.value = engine;
+
+      document.querySelectorAll("#search-popover .dropdown-item").forEach(item => {
+        item.classList.remove("active");
+      });
+      if (element) {
+        element.classList.add("active");
+      } else {
+        const items = document.querySelectorAll("#search-popover .dropdown-item");
+        items.forEach(item => {
+          if (item.getAttribute("onclick").includes(`'${engine}'`)) {
+            item.classList.add("active");
+          }
+        });
+      }
+
+      const iconSpan = document.getElementById("selected-engine-icon");
+      const icons = {
+        default: "🤖",
+        google: "🔍",
+        youtube: "📺",
+        bing: "🔎",
+        duckduckgo: "🦆"
+      };
+      iconSpan.textContent = icons[engine] || "🤖";
+
+      updateSearchPlaceholder();
+      closeSearchDropdown();
+    }
+
+    function closeSearchDropdown() {
+      const popover = document.getElementById("search-popover");
+      const btn = document.getElementById("search-trigger-btn");
+      if (popover) popover.classList.remove("open");
+      if (btn) btn.classList.remove("active");
+    }
+
+    document.addEventListener("click", () => {
+      closeSearchDropdown();
+    });
 
     /* ── Command History Persistence ────────────────────────────── */
     function logCommand(text) {
@@ -2526,7 +2647,6 @@
         history = JSON.parse(localStorage.getItem("cipher_history") || "[]");
       } catch (_) { }
 
-      // Avoid consecutive duplicate logs
       if (history.length > 0 && history[0].text === text) return;
 
       history.unshift({
@@ -2594,6 +2714,9 @@
         content.classList.remove("active");
       });
       document.getElementById(`tab-content-${tabName}`).classList.add("active");
+
+      const idx = { traps: 0, history: 1, specs: 2 }[tabName];
+      document.getElementById("tab-slider").style.transform = `translateX(${idx * 100}%)`;
 
       if (tabName === "traps") {
         loadTraps();
