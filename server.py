@@ -31,9 +31,9 @@ from google.genai import types
 
 # ── Load environment ──────────────────────────────────────────────────────────
 load_dotenv()
-API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+API_KEY = (os.getenv("GEMINI_API_KEY") or os.getenv("API_KEY") or "").strip()
 if not API_KEY:
-    print("[CIPHER] WARNING: GEMINI_API_KEY not set in environment or .env file.")
+    print("[CIPHER] WARNING: GEMINI_API_KEY/API_KEY not set in environment or .env file.")
 
 client = None
 if API_KEY:

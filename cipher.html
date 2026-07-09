@@ -1898,8 +1898,15 @@
 
         removeThinking();
 
-        if (!res.ok) throw new Error(`HTTP_${res.status}`);
-        const data = await res.json();
+        let data;
+        try {
+          data = await res.json();
+        } catch (_) {}
+
+        if (!res.ok) {
+          const errMsg = (data && data.reply) || `Server returned error status ${res.status}`;
+          throw new Error(errMsg);
+        }
 
         if (data.error && !data.reply) throw new Error("Server error.");
 
@@ -1964,12 +1971,12 @@
         const isConn = err.message && (
           err.message.includes("fetch") ||
           err.message.includes("Failed") ||
-          err.message.includes("HTTP") ||
+          err.message.startsWith("HTTP_") ||
           err.message.includes("NetworkError")
         );
         const msg = isConn
           ? "⚠ Can't connect to the server.\n\nFix: make sure server.py is running:\n  python server.py\n\nThen refresh this page."
-          : "Something went wrong on the server. Check the terminal for errors.";
+          : err.message || "Something went wrong on the server. Check the terminal for errors.";
         appendMessage("ai", msg, "error");
       } finally {
         _pendingSends = Math.max(0, _pendingSends - 1);
