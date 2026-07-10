@@ -49,7 +49,7 @@ Get a free key → [Google AI Studio](https://aistudio.google.com/app/apikey)
 ```bash
 python server.py
 ```
-Open `cipher.html` in Chrome/Edge, click the mic, and say **"Hey Cipher, show my system stats!"**
+Open `docs/app.html` in Chrome/Edge, click the mic, and say **"Hey Cipher, show my system stats!"**
 
 ---
 

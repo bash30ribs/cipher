@@ -60,7 +60,7 @@ help:
 	@echo "  ──────────────────────────────────────────"
 	@echo "  make setup    — Install deps & create .env"
 	@echo "  make run      — Start Flask server"
-	@echo "  make open     — Open cipher.html in browser"
+	@echo "  make open     — Open app in browser"
 	@echo "  make start    — Server + open UI together"
 	@echo "  make clean    — Remove Python cache"
 	@echo "  make help     — Show this message"

@@ -11,8 +11,8 @@
 ## Installation (3 Steps)
 
 ### 1️⃣ Download All Files
-Make sure these 5 files are in one folder:
-- `cipher.html`
+Make sure these files are in your folder:
+- `docs/app.html`
 - `server.py`
 - `requirements.txt`
 - `.env.example`
@@ -48,7 +48,7 @@ pip install pycaw comtypes pywin32
 python server.py
 ```
 
-Then open `cipher.html` in Chrome or Edge browser.
+Then open `docs/app.html` in Chrome or Edge browser.
 
 ---
 

@@ -43,7 +43,7 @@ if API_KEY:
         print(f"[CIPHER] ERROR initializing Gemini client: {e}")
 
 # ── Flask & CORS ──────────────────────────────────────────────────────────────
-app = Flask(__name__, static_folder='.', static_url_path='')
+app = Flask(__name__, static_folder='docs', static_url_path='')
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # ── Chat history (in-memory) ────────────────────────────────────────────────
@@ -1090,14 +1090,14 @@ def index():
 
 @app.route("/app")
 def serve_app():
-    """Serve the cipher.html interface at http://localhost:5000/app"""
-    return send_from_directory(Path(__file__).parent, 'cipher.html')
+    """Serve the app interface at http://localhost:5000/app"""
+    return send_from_directory(Path(__file__).parent / 'docs', 'app.html')
 
 
 @app.route("/cipher_logo.png")
 def serve_logo():
     """Serve the logo so the app interface finds it."""
-    return send_from_directory(Path(__file__).parent, 'cipher_logo.png')
+    return send_from_directory(Path(__file__).parent / 'docs' / 'images', 'logo.png')
 
 
 # ── Trap helpers ──────────────────────────────────────────────────────────────
@@ -1402,7 +1402,7 @@ if __name__ == "__main__":
     print("="*36)
     print()
     print(f"[CIPHER] Server starting on port {port}")
-    print(f"[CIPHER] Open the app at: https://localhost:{port}/cipher.html")
+    print(f"[CIPHER] Open the app at: https://localhost:{port}/app")
     print("[CIPHER] API ready at:    https://localhost:{}/chat".format(port))
     print("[CIPHER] NOTE: Your browser may warn you about an unsafe certificate.")
     print("         Click 'Advanced' -> 'Proceed to localhost' to continue.")
