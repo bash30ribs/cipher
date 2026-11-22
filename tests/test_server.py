@@ -14,6 +14,14 @@ from server import (
     check_internet_connection,
     safe_eval_math,
     is_offline_error,
+    get_disk_space,
+    get_top_processes,
+    set_timer,
+    get_timer_status,
+    cancel_timer,
+    get_network_diagnostics,
+    empty_recycle_bin,
+    create_desktop_folder,
 )
 
 
@@ -156,6 +164,42 @@ class TestCipherIntents(unittest.TestCase):
         self.assertEqual(result.get("action"), "network_status")
         self.assertIn("status", result)
 
+    def test_disk_space_intent(self):
+        result = route_intent("how much storage do I have")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.get("action"), "disk_space")
+        self.assertIn("free_gb", result)
+
+    def test_top_processes_intent(self):
+        result = route_intent("what is using my ram")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.get("action"), "top_processes")
+        self.assertIn("processes", result)
+
+    def test_timer_lifecycle_intent(self):
+        # Set timer
+        set_res = route_intent("set a timer for 10 minutes")
+        self.assertIsNotNone(set_res)
+        self.assertEqual(set_res.get("action"), "timer")
+        self.assertEqual(set_res.get("duration"), 600)
+
+        # Status
+        status_res = route_intent("check timer")
+        self.assertIsNotNone(status_res)
+        self.assertEqual(status_res.get("action"), "timer")
+        self.assertGreater(status_res.get("remaining", 0), 0)
+
+        # Cancel
+        cancel_res = route_intent("cancel timer")
+        self.assertIsNotNone(cancel_res)
+        self.assertEqual(cancel_res.get("action"), "timer")
+
+    def test_ip_diagnostics_intent(self):
+        result = route_intent("what is my ip")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.get("action"), "network_diagnostics")
+        self.assertIn("local_ip", result)
+
 
 class TestCipherOfflineHelpers(unittest.TestCase):
     def test_check_internet_connection(self):
@@ -177,6 +221,40 @@ class TestCipherOfflineHelpers(unittest.TestCase):
         self.assertTrue(is_offline_error(Exception("Network is unreachable")))
         self.assertTrue(is_offline_error(Exception("getaddrinfo failed")))
         self.assertFalse(is_offline_error(Exception("Invalid API key")))
+
+    def test_get_disk_space(self):
+        res = get_disk_space()
+        self.assertEqual(res.get("status"), "ok")
+        self.assertIn("total_gb", res)
+        self.assertIn("free_gb", res)
+        self.assertGreater(res.get("total_gb", 0), 0)
+
+    def test_get_top_processes(self):
+        res = get_top_processes(3)
+        self.assertEqual(res.get("status"), "ok")
+        self.assertIn("processes", res)
+        self.assertIsInstance(res.get("processes"), list)
+
+    def test_timer_functions(self):
+        # Set
+        s = set_timer(120, "study")
+        self.assertEqual(s.get("action"), "timer")
+        self.assertEqual(s.get("duration"), 120)
+
+        # Status
+        st = get_timer_status()
+        self.assertEqual(st.get("action"), "timer")
+        self.assertGreater(st.get("remaining", 0), 0)
+
+        # Cancel
+        c = cancel_timer()
+        self.assertEqual(c.get("action"), "timer")
+
+    def test_get_network_diagnostics(self):
+        diag = get_network_diagnostics()
+        self.assertEqual(diag.get("status"), "ok")
+        self.assertIn("local_ip", diag)
+        self.assertIn("hostname", diag)
 
 
 if __name__ == "__main__":
