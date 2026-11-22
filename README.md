@@ -70,7 +70,10 @@ make test
 |----------|----------|
 | **Help** | "help", "what can you do", "commands" |
 | **Math** | "calculate 25 * 4", "(12 + 8) * 3", "what is 150 / 2" |
-| **Network** | "check internet", "internet status", "am i online" |
+| **Network & IP** | "check internet", "internet status", "what is my ip", "local ip" |
+| **Storage & RAM** | "disk space", "storage info", "what is using my ram", "top apps" |
+| **Timers** | "set a timer for 10 minutes", "check timer", "cancel timer" |
+| **System Maintenance** | "empty recycle bin", "create folder ProjectX on desktop" |
 | **Launch** | "open youtube", "launch whatsapp", "open downloads folder" |
 | **Control** | "set volume to 80", "lock screen", "take a screenshot" |
 | **Stats** | "battery status", "cpu usage", "performance" |

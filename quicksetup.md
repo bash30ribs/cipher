@@ -97,6 +97,16 @@ python -m unittest discover -s tests -p "test_*.py" -v
 - "(10 + 5) * 4"
 - "check internet"
 - "internet status"
+- "what is my ip"
+
+### Timers & System Utilities
+- "set a timer for 5 minutes"
+- "check timer"
+- "cancel timer"
+- "what is using my ram"
+- "how much storage do i have"
+- "empty recycle bin"
+- "create folder Projects on desktop"
 
 ### Search
 - "search for Python tutorials"
