@@ -837,6 +837,43 @@ def get_running_apps() -> dict:
         print(f"[CIPHER] get_running_apps error: {e}")
         return {"action": "running_apps", "apps": [], "reply": f"Couldn't get running applications."}
 
+
+# ── Top Memory / CPU Processes ────────────────────────────────────────────
+def get_top_processes(n: int = 5) -> dict:
+    if not _psutil:
+        return {"action": "top_processes", "reply": "psutil not installed."}
+    try:
+        proc_map = {}
+        for p in _psutil.process_iter(['name', 'memory_info']):
+            try:
+                name = p.info.get('name')
+                if not name:
+                    continue
+                mem_info = p.info.get('memory_info')
+                if mem_info:
+                    proc_map[name] = proc_map.get(name, 0) + mem_info.rss
+            except (Exception,):
+                pass
+        
+        sorted_procs = sorted(proc_map.items(), key=lambda x: x[1], reverse=True)[:n]
+        lines = []
+        for i, (name, rss) in enumerate(sorted_procs, 1):
+            if rss >= 1024 ** 3:
+                size_str = f"{round(rss / (1024 ** 3), 1)} GB"
+            else:
+                size_str = f"{round(rss / (1024 ** 2))} MB"
+            lines.append(f"{i}. {name} — {size_str}")
+            
+        reply = "🧠 Top Memory-Consuming Processes:\n" + "\n".join(lines)
+        return {
+            "action": "top_processes",
+            "processes": [{"name": k, "rss_bytes": v} for k, v in sorted_procs],
+            "reply": reply,
+            "status": "ok"
+        }
+    except Exception as e:
+        return {"action": "top_processes", "reply": f"Could not list processes: {e}", "status": "error"}
+
 # ── Intent router ─────────────────────────────────────────────────────────────
 
 
@@ -1110,6 +1147,10 @@ def route_intent(text: str):
     # ── Disk Space & Storage ──────────────────────────────────────────
     if any(kw in t for kw in ["disk space", "storage", "hard drive space", "free space", "storage info", "disk usage", "how much storage", "how much space", "free disk"]):
         return get_disk_space()
+
+    # ── Top Memory & CPU Processes ────────────────────────────────────
+    if any(kw in t for kw in ["top processes", "top apps", "what is using my ram", "what's using my ram", "what is using my memory", "memory hogs", "heavy apps", "ram usage details", "what is slowing down my pc", "ram heavy"]):
+        return get_top_processes(5)
 
     # ── Quick Notes ──────────────────────────────────────────────────
     note_m = re.search(r'^note(?:s)?[:\s]+(.+)', t)
