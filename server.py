@@ -3,6 +3,9 @@ import re
 import sys
 import json
 import time
+import socket
+import ast
+import operator
 import platform
 import subprocess
 import webbrowser
@@ -10,6 +13,58 @@ import threading
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
+
+# ── Offline & Connectivity Helpers ───────────────────────────────────────────
+def check_internet_connection(timeout: float = 1.0) -> bool:
+    """Check if device has active internet access via fast DNS socket."""
+    try:
+        socket.setdefaulttimeout(timeout)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect(("8.8.8.8", 53))
+        return True
+    except Exception:
+        return False
+
+def is_offline_error(e: Exception) -> bool:
+    """Detect if an exception is caused by lack of internet connectivity."""
+    err_str = str(e).lower()
+    offline_keywords = [
+        "failed to resolve", "getaddrinfo failed", "name resolution", "connection error",
+        "connection refused", "network is unreachable", "apiconnectionerror",
+        "connectionreseterror", "nodename nor servname", "timed out", "timeout",
+        "connection broken", "socket.gaierror", "cannot connect to host"
+    ]
+    return any(kw in err_str for kw in offline_keywords)
+
+_SAFE_MATH_OPS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.FloorDiv: operator.floordiv,
+    ast.Mod: operator.mod,
+    ast.Pow: operator.pow,
+    ast.USub: operator.neg,
+    ast.UAdd: operator.pos,
+}
+
+def _eval_math_node(node):
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+        return node.value
+    elif isinstance(node, ast.BinOp) and type(node.op) in _SAFE_MATH_OPS:
+        left = _eval_math_node(node.left)
+        right = _eval_math_node(node.right)
+        if isinstance(node.op, ast.Pow) and right > 100:
+            raise ValueError("Exponent too large")
+        return _SAFE_MATH_OPS[type(node.op)](left, right)
+    elif isinstance(node, ast.UnaryOp) and type(node.op) in _SAFE_MATH_OPS:
+        return _SAFE_MATH_OPS[type(node.op)](_eval_math_node(node.operand))
+    raise ValueError("Unsupported operation")
+
+def safe_eval_math(expr_str: str):
+    """Safely parse and evaluate basic math expression without eval()."""
+    tree = ast.parse(expr_str.strip(), mode='eval')
+    return _eval_math_node(tree.body)
 
 try:
     import requests as _requests
@@ -553,6 +608,12 @@ def get_weather(city: str) -> dict:
                  f"(feels like {feels}°C). Humidity {humidity}%, Wind {wind} km/h.")
         return {"action": "weather", "reply": reply, "status": "ok"}
     except Exception as e:
+        if is_offline_error(e):
+            return {
+                "action": "weather",
+                "status": "offline",
+                "reply": f"Weather service is unavailable while offline. All local desktop controls (apps, volume, notes, traps) remain active."
+            }
         return {"action": "weather", "reply": f"Couldn't fetch weather for '{city}': {e}"}
 
 
@@ -1085,12 +1146,14 @@ def route_intent(text: str):
         return {
             "action": "help",
             "reply": (
-                "Here are some commands you can ask me:\n"
+                "Here are some commands you can ask me (all desktop controls work 100% offline!):\n"
                 "• 'open <website>' (e.g. open youtube, open github)\n"
-                "• 'launch <app>' (e.g. launch notepad, open calculator)\n"
+                "• 'launch <app>' (e.g. launch notepad, open calculator, open powershell)\n"
                 "• 'set volume to <0-100>' or 'mute' / 'unmute'\n"
-                "• 'take a screenshot'\n"
+                "• 'take a screenshot' or 'lock screen'\n"
                 "• 'system stats' or 'battery status'\n"
+                "• 'calculate <expression>' (e.g. calculate 25 * 4, 150 / 3)\n"
+                "• 'internet status' / 'check connection'\n"
                 "• 'weather in <city>'\n"
                 "• 'note: <text>' or 'read notes'\n"
                 "• 'focus mode on' / 'focus mode off'\n"
@@ -1098,6 +1161,28 @@ def route_intent(text: str):
                 "• 'answer this <question>' for AI answers"
             )
         }
+
+    # ── Internet / Connection Status ──────────────────────────────────────────
+    if any(kw in t for kw in ["internet status", "check internet", "am i online", "is internet working", "network status", "wifi status", "connection status"]):
+        online = check_internet_connection()
+        if online:
+            return {"action": "network_status", "status": "online", "reply": "🌐 Internet is connected and active. Cloud AI & online voice recognition are available."}
+        return {"action": "network_status", "status": "offline", "reply": "📡 You are currently offline. CIPHER Offline Desktop Engine is active — all local PC commands work without internet."}
+
+    # ── Offline Math / Calculator ─────────────────────────────────────────────
+    math_m = re.match(r'^(?:calculate|compute|solve|what is|how much is)\s+([0-9\.\s\+\-\*\/\(\)\%\^]+)$', t)
+    if not math_m:
+        if re.match(r'^\s*\(?\d+[\d\.\s\+\-\*\/\(\)\%]+\d\)?\s*$', t) and any(op in t for op in ['+', '-', '*', '/', '%']):
+            math_m = re.match(r'^\s*(.+?)\s*$', t)
+    if math_m:
+        expr = math_m.group(1).strip()
+        try:
+            val = safe_eval_math(expr)
+            if isinstance(val, float) and val.is_integer():
+                val = int(val)
+            return {"action": "calculator", "reply": f"Result: {expr} = {val}"}
+        except Exception:
+            pass
 
     # ── Basic Greetings ───────────────────────────────────────────────────────
     if any(t == kw for kw in ["hello", "hi", "hey cipher", "hey", "who are you", "what is cipher"]):
@@ -1124,6 +1209,7 @@ def health():
         "version": "2.5",
         "os": OS,
         "cloud": IS_CLOUD,
+        "online": check_internet_connection(),
         "gemini_configured": bool(client)
     })
 
@@ -1360,6 +1446,23 @@ def chat():
         # Remove last user message from history on error
         if chat_history and chat_history[-1]["role"] == "user":
             chat_history.pop()
+        if is_offline_error(e):
+            return jsonify({
+                "reply": (
+                    "📡 You are currently offline (no internet connection).\n\n"
+                    "CIPHER Offline Mode is active! You can still control your PC with local commands:\n"
+                    "• Launch apps ('open notepad', 'launch calculator', 'open powershell')\n"
+                    "• Volume & Media ('volume 60', 'mute', 'unmute', 'next track')\n"
+                    "• System stats & hardware ('battery status', 'cpu usage', 'system info')\n"
+                    "• Utilities ('take a screenshot', 'lock screen', 'note: <text>', 'read notes')\n"
+                    "• Math & calculations ('calculate 25 * 4', 'what is 100 / 5')\n"
+                    "• Clipboard ('read clipboard', 'copy <text>')\n"
+                    "• Traps ('run trap beast')\n"
+                    "• Date & time ('what time is it', 'what is today's date')"
+                ),
+                "action": "offline_mode",
+                "offline": True
+            }), 200
         return jsonify({"error": str(e), "reply": "Sorry, I ran into an error with Gemini."}), 500
 
 
