@@ -2,7 +2,7 @@
 # ║       CIPHER — Desktop AI Makefile       ║
 # ╚══════════════════════════════════════════╝
 
-.PHONY: all setup run open clean help
+.PHONY: all setup run open clean test help
 
 PYTHON   := python3
 PIP      := pip3
@@ -53,6 +53,11 @@ clean:
 	@find . -name "*.pyc" -delete 2>/dev/null; true
 	@echo "  Done."
 
+# ── Run test suite ───────────────────────────────────────────────────────────
+test:
+	@echo "[ CIPHER ] Running test suite..."
+	$(PYTHON) -m unittest discover -s tests -p "test_*.py" -v
+
 # ── Help ─────────────────────────────────────────────────────────────────────
 help:
 	@echo ""
@@ -62,6 +67,7 @@ help:
 	@echo "  make run      — Start Flask server"
 	@echo "  make open     — Open app in browser"
 	@echo "  make start    — Server + open UI together"
+	@echo "  make test     — Run unit test suite"
 	@echo "  make clean    — Remove Python cache"
 	@echo "  make help     — Show this message"
 	@echo ""
