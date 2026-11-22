@@ -698,6 +698,33 @@ def get_battery_cpu() -> dict:
         return {"action": "battery_cpu", "reply": f"Could not get system stats: {e}"}
 
 
+# ── Disk Space & Storage ──────────────────────────────────────────────────
+def get_disk_space() -> dict:
+    if not _psutil:
+        return {"action": "disk_space", "reply": "psutil not installed."}
+    try:
+        path = "C:\\" if OS == "Windows" else "/"
+        usage = _psutil.disk_usage(path)
+        _GiB = 1024 ** 3
+        total_gb = round(usage.total / _GiB, 1)
+        used_gb  = round(usage.used  / _GiB, 1)
+        free_gb  = round(usage.free  / _GiB, 1)
+        percent  = usage.percent
+        reply = f"💾 Storage ({path}): {free_gb} GB free of {total_gb} GB ({percent}% used)."
+        return {
+            "action": "disk_space",
+            "total_gb": total_gb,
+            "used_gb": used_gb,
+            "free_gb": free_gb,
+            "percent": percent,
+            "path": path,
+            "reply": reply,
+            "status": "ok"
+        }
+    except Exception as e:
+        return {"action": "disk_space", "reply": f"Could not check disk space: {e}", "status": "error"}
+
+
 # ── Quick Notes ─────────────────────────────────────────────────────────────
 NOTES_FILE = Path(__file__).parent / "notes.txt"
 def save_note(text: str) -> dict:
@@ -1079,6 +1106,10 @@ def route_intent(text: str):
     # ── Battery & CPU ────────────────────────────────────────────────
     if any(kw in t for kw in ["battery", "cpu usage", "ram usage", "memory usage", "cpu load", "battery status", "system stats", "performance"]):
         return get_battery_cpu()
+
+    # ── Disk Space & Storage ──────────────────────────────────────────
+    if any(kw in t for kw in ["disk space", "storage", "hard drive space", "free space", "storage info", "disk usage", "how much storage", "how much space", "free disk"]):
+        return get_disk_space()
 
     # ── Quick Notes ──────────────────────────────────────────────────
     note_m = re.search(r'^note(?:s)?[:\s]+(.+)', t)
@@ -1502,13 +1533,16 @@ def sysstats():
             battery_data["present"] = True
             battery_data["percent"] = round(battery.percent)
             battery_data["charging"] = battery.power_plugged
+
+        disk_info = get_disk_space()
             
         return jsonify({
             "cpu": cpu,
             "ram_used": ram_used,
             "ram_total": ram_total,
             "ram_percent": ram_percent,
-            "battery": battery_data
+            "battery": battery_data,
+            "disk": disk_info
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
