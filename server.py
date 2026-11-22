@@ -140,9 +140,9 @@ APP_MAP = {
     "whatsapp":   {"Windows": "start whatsapp:",         "Darwin": "open -a WhatsApp",             "Linux": "whatsapp-desktop"},
     "telegram":   {"Windows": "start telegram:",         "Darwin": "open -a Telegram",             "Linux": "telegram-desktop"},
     "vlc":        {"Windows": "start vlc",               "Darwin": "open -a VLC",                  "Linux": "vlc"},
-    "task manager":{"Windows": "start taskmgr",          "Darwin": "",                              "Linux": "gnome-system-monitor"},
-    "taskmgr":    {"Windows": "start taskmgr",           "Darwin": "",                              "Linux": "gnome-system-monitor"},
-    "control panel":{"Windows": "start control",         "Darwin": "",                              "Linux": "gnome-control-center"},
+    "task manager":{"Windows": "start taskmgr",          "Darwin": "open -a 'Activity Monitor'",    "Linux": "gnome-system-monitor"},
+    "taskmgr":    {"Windows": "start taskmgr",           "Darwin": "open -a 'Activity Monitor'",    "Linux": "gnome-system-monitor"},
+    "control panel":{"Windows": "start control",         "Darwin": "open -a 'System Settings'",     "Linux": "gnome-control-center"},
     "powershell":   {"Windows": "start powershell",      "Darwin": "pwsh",                          "Linux": "pwsh"},
 }
 
@@ -235,13 +235,42 @@ def run_cmd(cmd: str) -> bool:
 
 
 def universal_launch(app_name: str) -> dict:
-    """Try to launch ANY installed Windows app by name. Returns proper status."""
+    """Try to launch ANY installed app by name across Windows, macOS, and Linux."""
     if IS_CLOUD:
         return {"action": "open_app", "app": app_name, "status": "cloud_unsupported",
                 "reply": "Launching local applications is only supported when running CIPHER locally on your device."}
-    if OS != "Windows":
+    
+    if OS == "Darwin":
+        try:
+            r = subprocess.run(["open", "-a", app_name], capture_output=True, timeout=5)
+            if r.returncode == 0:
+                return {"action": "open_app", "app": app_name, "status": "ok",
+                        "reply": f"Opening {app_name.capitalize()}."}
+        except Exception as e:
+            print(f"[CIPHER] macOS launch error: {e}")
         return {"action": "open_app", "app": app_name, "status": "not_found",
-                "reply": f"{app_name.capitalize()} wasn't found on your device."}
+                "reply": f"{app_name.capitalize()} wasn't found on your device. Make sure it's installed."}
+
+    if OS == "Linux":
+        import shutil
+        app_bin = shutil.which(app_name.lower()) or shutil.which(app_name)
+        if app_bin:
+            try:
+                subprocess.Popen([app_bin], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return {"action": "open_app", "app": app_name, "status": "ok",
+                        "reply": f"Opening {app_name.capitalize()}."}
+            except Exception as e:
+                print(f"[CIPHER] Linux binary launch error: {e}")
+        try:
+            r = subprocess.run(["gtk-launch", app_name], capture_output=True, timeout=5)
+            if r.returncode == 0:
+                return {"action": "open_app", "app": app_name, "status": "ok",
+                        "reply": f"Opening {app_name.capitalize()}."}
+        except Exception:
+            pass
+        return {"action": "open_app", "app": app_name, "status": "not_found",
+                "reply": f"{app_name.capitalize()} wasn't found on your device. Make sure it's installed."}
+
     try:
         # Use powershell to check if the app exists before trying to launch
         check = subprocess.run(
@@ -351,6 +380,23 @@ def close_app(name: str) -> dict:
         if result2.returncode == 0 or "SUCCESS" in result2.stdout.upper():
             return {"action": "close_app", "app": name, "reply": f"{name.capitalize()} has been closed."}
 
+    elif OS == "Darwin":
+        try:
+            r = subprocess.run(["osascript", "-e", f'tell application "{name}" to quit'], capture_output=True, timeout=3)
+            if r.returncode == 0:
+                return {"action": "close_app", "app": name, "reply": f"{name.capitalize()} has been closed."}
+        except Exception:
+            pass
+        if process_filename:
+            r = subprocess.run(f'pkill -f "{process_filename}"', shell=True, capture_output=True)
+            if r.returncode == 0:
+                return {"action": "close_app", "app": name, "reply": f"{name.capitalize()} has been closed."}
+
+    elif OS == "Linux" and process_filename:
+        r = subprocess.run(f'pkill -f "{process_filename}"', shell=True, capture_output=True)
+        if r.returncode == 0:
+            return {"action": "close_app", "app": name, "reply": f"{name.capitalize()} has been closed."}
+
     return {"action": "close_app", "app": name, "reply": f"Could not find a running process for '{name}'. Make sure it is open."}
 
 
@@ -359,8 +405,25 @@ def close_window_by_title(keyword: str) -> dict:
     if IS_CLOUD:
         return {"action": "close_window",
                 "reply": "Closing browser windows/tabs is only supported when running CIPHER locally on your device."}
-    if OS != "Windows":
-        return {"action": "close_window", "reply": f"Window close by title is only supported on Windows."}
+    
+    if OS == "Darwin":
+        try:
+            r = subprocess.run(["osascript", "-e", f'tell application "{keyword}" to quit'], capture_output=True, timeout=3)
+            if r.returncode == 0:
+                return {"action": "close_window", "title": keyword, "reply": f"Closing '{keyword}' application."}
+            return {"action": "close_window", "reply": f"No application found matching '{keyword}'."}
+        except Exception as e:
+            return {"action": "close_window", "reply": f"Could not close '{keyword}': {e}"}
+
+    if OS == "Linux":
+        try:
+            r = subprocess.run(["wmctrl", "-c", keyword], capture_output=True, timeout=3)
+            if r.returncode == 0:
+                return {"action": "close_window", "title": keyword, "reply": f"Closing '{keyword}' window."}
+            return {"action": "close_window", "reply": f"No window found matching '{keyword}'."}
+        except Exception as e:
+            return {"action": "close_window", "reply": f"Could not close '{keyword}': {e}"}
+
     try:
         import ctypes
         found_windows = []
@@ -506,9 +569,45 @@ def screenshot() -> dict:
         return {"action": "screenshot", "path": str(fname), "status": "ok",
                 "reply": f"Screenshot saved to Desktop as {fname.name}."}
     except ImportError:
+        desktop = Path.home() / "Desktop"
+        desktop.mkdir(exist_ok=True)
+        fname = desktop / f"cipher_screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        if OS == "Darwin":
+            try:
+                subprocess.run(["screencapture", str(fname)], check=True, timeout=5)
+                return {"action": "screenshot", "path": str(fname), "status": "ok",
+                        "reply": f"Screenshot saved to Desktop as {fname.name}."}
+            except Exception:
+                pass
+        elif OS == "Linux":
+            for tool in [["scrot", str(fname)], ["gnome-screenshot", "-f", str(fname)]]:
+                try:
+                    subprocess.run(tool, check=True, timeout=5)
+                    return {"action": "screenshot", "path": str(fname), "status": "ok",
+                            "reply": f"Screenshot saved to Desktop as {fname.name}."}
+                except Exception:
+                    continue
         return {"action": "screenshot", "status": "error", "detail": "Pillow not installed",
                 "reply": "Screenshot failed: install Pillow (pip install pillow)."}
     except Exception as e:
+        desktop = Path.home() / "Desktop"
+        desktop.mkdir(exist_ok=True)
+        fname = desktop / f"cipher_screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        if OS == "Darwin":
+            try:
+                subprocess.run(["screencapture", str(fname)], check=True, timeout=5)
+                return {"action": "screenshot", "path": str(fname), "status": "ok",
+                        "reply": f"Screenshot saved to Desktop as {fname.name}."}
+            except Exception:
+                pass
+        elif OS == "Linux":
+            for tool in [["scrot", str(fname)], ["gnome-screenshot", "-f", str(fname)]]:
+                try:
+                    subprocess.run(tool, check=True, timeout=5)
+                    return {"action": "screenshot", "path": str(fname), "status": "ok",
+                            "reply": f"Screenshot saved to Desktop as {fname.name}."}
+                except Exception:
+                    continue
         return {"action": "screenshot", "status": "error", "detail": str(e),
                 "reply": f"Screenshot failed: {e}"}
 
@@ -621,6 +720,51 @@ def get_volume() -> dict:
                 }
             except Exception as e:
                 return {"action": "get_volume", "status": "error", "reply": f"Could not read volume: {e}"}
+    elif OS == "Darwin":
+        try:
+            vol_out = subprocess.check_output(["osascript", "-e", "output volume of (get volume settings)"], text=True, timeout=3).strip()
+            mute_out = subprocess.check_output(["osascript", "-e", "output muted of (get volume settings)"], text=True, timeout=3).strip()
+            level = int(vol_out) if vol_out.isdigit() else 50
+            muted = (mute_out.lower() == "true")
+            mute_str = " (muted)" if muted else ""
+            return {
+                "action": "get_volume",
+                "status": "ok",
+                "level": level,
+                "muted": muted,
+                "reply": f"🔊 Current system volume is {level}%{mute_str}."
+            }
+        except Exception as e:
+            return {"action": "get_volume", "status": "error", "reply": f"Could not read volume on macOS: {e}"}
+    elif OS == "Linux":
+        try:
+            out = subprocess.check_output(["amixer", "sget", "Master"], text=True, timeout=3)
+            vol_m = re.search(r'\[(\d+)%\]', out)
+            mute_m = re.search(r'\[(on|off)\]', out)
+            level = int(vol_m.group(1)) if vol_m else 50
+            muted = (mute_m.group(1).lower() == "off") if mute_m else False
+            mute_str = " (muted)" if muted else ""
+            return {
+                "action": "get_volume",
+                "status": "ok",
+                "level": level,
+                "muted": muted,
+                "reply": f"🔊 Current system volume is {level}%{mute_str}."
+            }
+        except Exception:
+            try:
+                out = subprocess.check_output(["pactl", "get-sink-volume", "@DEFAULT_SINK@"], text=True, timeout=3)
+                vol_m = re.search(r'/ (\d+)% /', out)
+                level = int(vol_m.group(1)) if vol_m else 50
+                return {
+                    "action": "get_volume",
+                    "status": "ok",
+                    "level": level,
+                    "muted": False,
+                    "reply": f"🔊 Current system volume is {level}%."
+                }
+            except Exception as e:
+                return {"action": "get_volume", "status": "error", "reply": f"Could not read volume on Linux: {e}"}
     return {"action": "get_volume", "status": "error", "reply": f"Volume checking not supported on {OS}."}
 
 
@@ -748,7 +892,11 @@ def get_disk_space() -> dict:
     if not _psutil:
         return {"action": "disk_space", "reply": "psutil not installed."}
     try:
-        path = "C:\\" if OS == "Windows" else "/"
+        if OS == "Windows":
+            drive = Path.home().drive or "C:"
+            path = f"{drive}\\" if not drive.endswith("\\") else drive
+        else:
+            path = "/"
         usage = _psutil.disk_usage(path)
         _GiB = 1024 ** 3
         total_gb = round(usage.total / _GiB, 1)
@@ -901,7 +1049,28 @@ def empty_recycle_bin() -> dict:
             return {"action": "empty_recycle_bin", "status": "ok", "reply": "🗑️ Recycle Bin has been emptied."}
         except Exception as e:
             return {"action": "empty_recycle_bin", "status": "error", "reply": f"Could not empty Recycle Bin: {e}"}
-    return {"action": "empty_recycle_bin", "reply": "Recycle Bin cleaner is only supported on Windows."}
+    elif OS == "Darwin":
+        try:
+            subprocess.run(["osascript", "-e", 'tell application "Finder" to empty trash'], capture_output=True, timeout=10)
+            return {"action": "empty_recycle_bin", "status": "ok", "reply": "🗑️ macOS Trash has been emptied."}
+        except Exception as e:
+            return {"action": "empty_recycle_bin", "status": "error", "reply": f"Could not empty Trash: {e}"}
+    elif OS == "Linux":
+        try:
+            r = subprocess.run(["gio", "trash", "--empty"], capture_output=True, timeout=10)
+            if r.returncode != 0:
+                trash_files = Path.home() / ".local" / "share" / "Trash" / "files"
+                if trash_files.exists():
+                    import shutil
+                    for item in trash_files.iterdir():
+                        if item.is_dir():
+                            shutil.rmtree(item, ignore_errors=True)
+                        else:
+                            item.unlink(missing_ok=True)
+            return {"action": "empty_recycle_bin", "status": "ok", "reply": "🗑️ Linux Trash has been emptied."}
+        except Exception as e:
+            return {"action": "empty_recycle_bin", "status": "error", "reply": f"Could not empty Trash: {e}"}
+    return {"action": "empty_recycle_bin", "reply": f"Trash cleaning is not supported on {OS}."}
 
 
 # ── Desktop Folder Creator ────────────────────────────────────────────────
@@ -1028,8 +1197,28 @@ def focus_mode_off() -> dict:
 def switch_to_window(keyword: str) -> dict:
     if IS_CLOUD:
         return {"action": "switch_window", "reply": "Window switching is only supported when running CIPHER locally on your device."}
-    if OS != "Windows":
-        return {"action": "switch_window", "reply": "Window switching is only supported on Windows."}
+    
+    if OS == "Darwin":
+        try:
+            r = subprocess.run(["osascript", "-e", f'tell application "{keyword}" to activate'], capture_output=True, timeout=3)
+            if r.returncode == 0:
+                return {"action": "switch_window", "status": "ok", "reply": f"Switched to '{keyword}' application."}
+            return {"action": "switch_window", "status": "not_found", "reply": f"Could not find or switch to application '{keyword}'."}
+        except Exception as e:
+            return {"action": "switch_window", "status": "error", "reply": f"Couldn't switch application on macOS: {e}"}
+
+    if OS == "Linux":
+        try:
+            r = subprocess.run(["wmctrl", "-a", keyword], capture_output=True, timeout=3)
+            if r.returncode == 0:
+                return {"action": "switch_window", "status": "ok", "reply": f"Switched to '{keyword}' window."}
+            r2 = subprocess.run(["xdotool", "search", "--name", keyword, "windowactivate"], capture_output=True, timeout=3)
+            if r2.returncode == 0:
+                return {"action": "switch_window", "status": "ok", "reply": f"Switched to '{keyword}' window."}
+            return {"action": "switch_window", "status": "not_found", "reply": f"No window found matching '{keyword}'."}
+        except Exception as e:
+            return {"action": "switch_window", "status": "error", "reply": f"Couldn't switch window on Linux: {e}"}
+
     try:
         import ctypes
         found = []
@@ -1056,11 +1245,38 @@ def switch_to_window(keyword: str) -> dict:
 
 # ── Background Apps ───────────────────────────────────────────────────────────
 def get_running_apps() -> dict:
-    """Get a list of currently running visible windows/apps."""
+    """Get a list of currently running visible windows/apps across Windows, macOS, and Linux."""
     if IS_CLOUD:
         return {"action": "running_apps", "apps": [], "reply": "Retrieving background applications is only supported when running CIPHER locally on your device."}
-    if OS != "Windows":
-        return {"action": "running_apps", "apps": [], "reply": "This feature is only supported on Windows."}
+    
+    if OS == "Darwin":
+        try:
+            out = subprocess.check_output(
+                ["osascript", "-e", 'tell application "System Events" to get name of (every process whose background only is false)'],
+                text=True, timeout=3
+            ).strip()
+            apps = [a.strip() for a in out.split(",") if a.strip()]
+            return {"action": "running_apps", "apps": apps, "reply": f"Found {len(apps)} running applications: {', '.join(apps[:5])}."}
+        except Exception as e:
+            return {"action": "running_apps", "apps": [], "reply": f"Couldn't get running applications on macOS: {e}"}
+
+    if OS == "Linux":
+        try:
+            out = subprocess.check_output(["wmctrl", "-l"], text=True, timeout=3)
+            apps = []
+            for line in out.splitlines():
+                parts = line.split(None, 3)
+                if len(parts) >= 4 and parts[3].strip():
+                    apps.append(parts[3].strip())
+            if apps:
+                return {"action": "running_apps", "apps": apps, "reply": f"Found {len(apps)} visible windows: {', '.join(apps[:5])}."}
+        except Exception:
+            pass
+        if _psutil:
+            apps = list(set(p.info['name'] for p in _psutil.process_iter(['name']) if p.info.get('name') and not p.info['name'].startswith('kworker')))[:10]
+            return {"action": "running_apps", "apps": apps, "reply": f"Found {len(apps)} running applications."}
+        return {"action": "running_apps", "apps": [], "reply": "Could not retrieve running applications on Linux."}
+
     try:
         import ctypes
         apps = []
@@ -1323,7 +1539,13 @@ def route_intent(text: str):
             ctypes.windll.user32.keybd_event(0xB3, 0, 0, 0)  # VK_MEDIA_PLAY_PAUSE
             ctypes.windll.user32.keybd_event(0xB3, 0, 2, 0)
             return {"action": "media_play_pause", "reply": "Toggling playback."}
-        return {"action": "media_play_pause", "reply": "Media controls only supported on Windows."}
+        elif OS == "Darwin":
+            run_cmd("osascript -e 'tell application \"Music\" to playpause' 2>/dev/null || osascript -e 'tell application \"Spotify\" to playpause'")
+            return {"action": "media_play_pause", "reply": "Toggling playback on macOS."}
+        elif OS == "Linux":
+            run_cmd("playerctl play-pause 2>/dev/null || xdotool key XF86AudioPlay")
+            return {"action": "media_play_pause", "reply": "Toggling playback on Linux."}
+        return {"action": "media_play_pause", "reply": f"Media controls not supported on {OS}."}
 
     if any(kw in t for kw in ["next song", "next track", "skip song", "skip track"]):
         if IS_CLOUD:
@@ -1333,17 +1555,29 @@ def route_intent(text: str):
             ctypes.windll.user32.keybd_event(0xB5, 0, 0, 0)  # VK_MEDIA_NEXT_TRACK
             ctypes.windll.user32.keybd_event(0xB5, 0, 2, 0)
             return {"action": "media_next", "reply": "Playing next track."}
-        return {"action": "media_next", "reply": "Media controls only supported on Windows."}
+        elif OS == "Darwin":
+            run_cmd("osascript -e 'tell application \"Music\" to next track' 2>/dev/null || osascript -e 'tell application \"Spotify\" to next track'")
+            return {"action": "media_next", "reply": "Playing next track on macOS."}
+        elif OS == "Linux":
+            run_cmd("playerctl next 2>/dev/null || xdotool key XF86AudioNext")
+            return {"action": "media_next", "reply": "Playing next track on Linux."}
+        return {"action": "media_next", "reply": f"Media controls not supported on {OS}."}
 
     if any(kw in t for kw in ["previous song", "previous track", "prev song", "prev track", "go back song"]):
         if IS_CLOUD:
             return {"action": "media_prev", "reply": "Media controls are only supported when running CIPHER locally on your device."}
         if OS == "Windows":
             import ctypes
-            ctypes.windll.user32.keybd_event(0xB6, 0, 0, 0)  # VK_MEDIA_PREV_TRACK
-            ctypes.windll.user32.keybd_event(0xB6, 0, 2, 0)
+            ctypes.windll.user32.keybd_event(0xB1, 0, 0, 0)  # VK_MEDIA_PREV_TRACK (0xB1)
+            ctypes.windll.user32.keybd_event(0xB1, 0, 2, 0)
             return {"action": "media_prev", "reply": "Playing previous track."}
-        return {"action": "media_prev", "reply": "Media controls only supported on Windows."}
+        elif OS == "Darwin":
+            run_cmd("osascript -e 'tell application \"Music\" to previous track' 2>/dev/null || osascript -e 'tell application \"Spotify\" to previous track'")
+            return {"action": "media_prev", "reply": "Playing previous track on macOS."}
+        elif OS == "Linux":
+            run_cmd("playerctl previous 2>/dev/null || xdotool key XF86AudioPrev")
+            return {"action": "media_prev", "reply": "Playing previous track on Linux."}
+        return {"action": "media_prev", "reply": f"Media controls not supported on {OS}."}
 
     # ── Date / time ───────────────────────────────────────────────────────────
     if any(kw in t for kw in ["what time", "what's the time", "current time", "time is it"]):
@@ -1361,7 +1595,7 @@ def route_intent(text: str):
         elif OS == "Darwin":
             run_cmd("pmset displaysleepnow")
         elif OS == "Linux":
-            run_cmd("xdg-screensaver lock")
+            run_cmd("loginctl lock-session || xdg-screensaver lock || gnome-screensaver-command -l")
         return {"action": "lock", "reply": "Locking the screen."}
 
     # ── Clear Chat ────────────────────────────────────────────────────────────

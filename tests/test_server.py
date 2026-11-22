@@ -1,5 +1,6 @@
 import json
 import unittest
+from unittest.mock import patch, MagicMock
 from pathlib import Path
 import sys
 
@@ -29,6 +30,9 @@ from server import (
     flip_coin,
     roll_dice,
     random_number,
+    APP_MAP,
+    switch_to_window,
+    universal_launch,
 )
 
 
@@ -346,6 +350,72 @@ class TestCipherOfflineHelpers(unittest.TestCase):
         rn = random_number(5, 10)
         self.assertEqual(rn.get("status"), "ok")
         self.assertTrue(5 <= rn.get("result") <= 10)
+
+
+class TestCipherCrossPlatform(unittest.TestCase):
+    def test_app_map_cross_platform_completeness(self):
+        for app_name, os_dict in APP_MAP.items():
+            for os_target in ["Windows", "Darwin", "Linux"]:
+                self.assertIn(os_target, os_dict, f"Missing {os_target} launcher for {app_name}")
+                self.assertTrue(bool(os_dict[os_target]), f"Empty {os_target} launcher command for {app_name}")
+
+    def test_disk_space_cross_platform(self):
+        with patch("server.OS", "Darwin"):
+            d_res = get_disk_space()
+            self.assertEqual(d_res.get("status"), "ok")
+            self.assertEqual(d_res.get("path"), "/")
+
+        with patch("server.OS", "Linux"):
+            l_res = get_disk_space()
+            self.assertEqual(l_res.get("status"), "ok")
+            self.assertEqual(l_res.get("path"), "/")
+
+    def test_empty_recycle_bin_cross_platform(self):
+        with patch("server.OS", "Darwin"), patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0)
+            res = empty_recycle_bin()
+            self.assertEqual(res.get("status"), "ok")
+            self.assertIn("trash", res.get("reply", "").lower())
+
+        with patch("server.OS", "Linux"), patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0)
+            res = empty_recycle_bin()
+            self.assertEqual(res.get("status"), "ok")
+            self.assertIn("trash", res.get("reply", "").lower())
+
+    def test_switch_window_cross_platform(self):
+        with patch("server.OS", "Darwin"), patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0)
+            res = switch_to_window("Spotify")
+            self.assertEqual(res.get("status"), "ok")
+
+        with patch("server.OS", "Linux"), patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0)
+            res = switch_to_window("Terminal")
+            self.assertEqual(res.get("status"), "ok")
+
+    def test_universal_launch_cross_platform(self):
+        with patch("server.OS", "Darwin"), patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0)
+            res = universal_launch("Xcode")
+            self.assertEqual(res.get("status"), "ok")
+
+        with patch("server.OS", "Linux"), patch("shutil.which", return_value="/usr/bin/gimp"), patch("subprocess.Popen"):
+            res = universal_launch("gimp")
+            self.assertEqual(res.get("status"), "ok")
+
+    def test_get_volume_cross_platform(self):
+        with patch("server.OS", "Darwin"), patch("subprocess.check_output", side_effect=["65", "false"]):
+            res = get_volume()
+            self.assertEqual(res.get("status"), "ok")
+            self.assertEqual(res.get("level"), 65)
+            self.assertFalse(res.get("muted"))
+
+        with patch("server.OS", "Linux"), patch("subprocess.check_output", return_value="Simple mixer control 'Master',0\nFront Left: Playback 45 [70%] [on]"):
+            res = get_volume()
+            self.assertEqual(res.get("status"), "ok")
+            self.assertEqual(res.get("level"), 70)
+            self.assertFalse(res.get("muted"))
 
 
 if __name__ == "__main__":
