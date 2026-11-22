@@ -725,6 +725,97 @@ def get_disk_space() -> dict:
         return {"action": "disk_space", "reply": f"Could not check disk space: {e}", "status": "error"}
 
 
+# ── Timers & Countdowns ───────────────────────────────────────────────────
+_ACTIVE_TIMERS = {}
+_TIMER_LOCK = threading.Lock()
+
+def set_timer(duration_seconds: int, label: str = "") -> dict:
+    if duration_seconds <= 0:
+        return {"action": "timer", "status": "error", "reply": "Timer duration must be positive."}
+    if duration_seconds > 86400:
+        return {"action": "timer", "status": "error", "reply": "Timer cannot exceed 24 hours."}
+    
+    end_time = time.time() + duration_seconds
+    with _TIMER_LOCK:
+        _ACTIVE_TIMERS["main"] = {
+            "duration": duration_seconds,
+            "end_time": end_time,
+            "label": label or f"{duration_seconds}s",
+            "started_at": time.time()
+        }
+    
+    m, s = divmod(duration_seconds, 60)
+    h, m = divmod(m, 60)
+    parts = []
+    if h > 0:
+        parts.append(f"{h} hour{'s' if h > 1 else ''}")
+    if m > 0:
+        parts.append(f"{m} minute{'s' if m > 1 else ''}")
+    if s > 0 or not parts:
+        parts.append(f"{s} second{'s' if s > 1 else ''}")
+    time_desc = " ".join(parts)
+    return {
+        "action": "timer",
+        "subaction": "set",
+        "duration": duration_seconds,
+        "remaining": duration_seconds,
+        "reply": f"⏱️ Timer set for {time_desc}."
+    }
+
+def get_timer_status() -> dict:
+    with _TIMER_LOCK:
+        timer = _ACTIVE_TIMERS.get("main")
+        if not timer:
+            return {"action": "timer", "subaction": "status", "reply": "No active timer."}
+        rem = int(timer["end_time"] - time.time())
+        if rem <= 0:
+            return {"action": "timer", "subaction": "status", "remaining": 0, "reply": "⏱️ Timer has finished!"}
+        m, s = divmod(rem, 60)
+        h, m = divmod(m, 60)
+        parts = []
+        if h > 0:
+            parts.append(f"{h}h")
+        if m > 0:
+            parts.append(f"{m}m")
+        parts.append(f"{s}s")
+        time_str = " ".join(parts)
+        return {
+            "action": "timer",
+            "subaction": "status",
+            "remaining": rem,
+            "reply": f"⏱️ Timer: {time_str} remaining."
+        }
+
+def cancel_timer() -> dict:
+    with _TIMER_LOCK:
+        if "main" in _ACTIVE_TIMERS:
+            del _ACTIVE_TIMERS["main"]
+            return {"action": "timer", "subaction": "cancel", "reply": "⏱️ Timer cancelled."}
+        return {"action": "timer", "subaction": "cancel", "reply": "No active timer to cancel."}
+
+def parse_timer_seconds(text: str):
+    t = text.lower().strip()
+    hours = re.search(r'(\d+)\s*(?:hour|hr)s?', t)
+    mins = re.search(r'(\d+)\s*(?:minute|min)s?', t)
+    secs = re.search(r'(\d+)\s*(?:second|sec)s?', t)
+    total = 0
+    if hours:
+        total += int(hours.group(1)) * 3600
+    if mins:
+        total += int(mins.group(1)) * 60
+    if secs:
+        total += int(secs.group(1))
+    if total > 0:
+        return total
+    short_m = re.search(r'timer\s+(?:for\s+)?(\d+)\s*m\b', t)
+    if short_m:
+        return int(short_m.group(1)) * 60
+    short_s = re.search(r'timer\s+(?:for\s+)?(\d+)\s*s\b', t)
+    if short_s:
+        return int(short_s.group(1))
+    return None
+
+
 # ── Quick Notes ─────────────────────────────────────────────────────────────
 NOTES_FILE = Path(__file__).parent / "notes.txt"
 def save_note(text: str) -> dict:
@@ -1151,6 +1242,16 @@ def route_intent(text: str):
     # ── Top Memory & CPU Processes ────────────────────────────────────
     if any(kw in t for kw in ["top processes", "top apps", "what is using my ram", "what's using my ram", "what is using my memory", "memory hogs", "heavy apps", "ram usage details", "what is slowing down my pc", "ram heavy"]):
         return get_top_processes(5)
+
+    # ── Timers ────────────────────────────────────────────────────────
+    if any(kw in t for kw in ["cancel timer", "stop timer", "clear timer", "delete timer"]):
+        return cancel_timer()
+    if any(kw in t for kw in ["check timer", "timer status", "timer remaining", "how much time left on timer"]):
+        return get_timer_status()
+    if "timer" in t:
+        secs = parse_timer_seconds(t)
+        if secs:
+            return set_timer(secs)
 
     # ── Quick Notes ──────────────────────────────────────────────────
     note_m = re.search(r'^note(?:s)?[:\s]+(.+)', t)
