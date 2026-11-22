@@ -23,6 +23,7 @@ from server import (
     empty_recycle_bin,
     create_desktop_folder,
     get_volume,
+    get_system_uptime,
 )
 
 
@@ -207,6 +208,13 @@ class TestCipherIntents(unittest.TestCase):
         self.assertEqual(result.get("action"), "get_volume")
         self.assertIn("level", result)
 
+    def test_uptime_intent(self):
+        result = route_intent("system uptime")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.get("action"), "uptime")
+        self.assertIn("uptime_seconds", result)
+        self.assertIn("boot_time", result)
+
 
 class TestCipherOfflineHelpers(unittest.TestCase):
     def test_check_internet_connection(self):
@@ -269,6 +277,14 @@ class TestCipherOfflineHelpers(unittest.TestCase):
         if res.get("status") == "ok":
             self.assertIn("level", res)
             self.assertIn("muted", res)
+
+    def test_get_system_uptime_helper(self):
+        res = get_system_uptime()
+        self.assertEqual(res.get("status"), "ok")
+        self.assertIn("uptime_seconds", res)
+        self.assertIn("uptime_human", res)
+        self.assertIn("boot_time", res)
+        self.assertGreaterEqual(res.get("uptime_seconds", -1), 0)
 
 
 if __name__ == "__main__":

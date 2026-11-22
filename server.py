@@ -910,6 +910,38 @@ def create_desktop_folder(folder_name: str) -> dict:
         return {"action": "create_folder", "status": "error", "reply": f"Could not create folder: {e}"}
 
 
+# ── System Uptime & Boot Time ─────────────────────────────────────────────
+def get_system_uptime() -> dict:
+    """Calculate operating system uptime and initial boot timestamp."""
+    if not _psutil:
+        return {"action": "uptime", "status": "error", "reply": "Uptime unavailable: install psutil."}
+    try:
+        boot_ts = _psutil.boot_time()
+        boot_dt = datetime.fromtimestamp(boot_ts)
+        uptime_sec = int(time.time() - boot_ts)
+        days = uptime_sec // 86400
+        hours = (uptime_sec % 86400) // 3600
+        minutes = (uptime_sec % 3600) // 60
+        parts = []
+        if days > 0:
+            parts.append(f"{days} day{'s' if days != 1 else ''}")
+        if hours > 0:
+            parts.append(f"{hours} hr{'s' if hours != 1 else ''}")
+        parts.append(f"{minutes} min{'s' if minutes != 1 else ''}")
+        uptime_str = ", ".join(parts)
+        boot_str = boot_dt.strftime("%Y-%m-%d %I:%M %p")
+        return {
+            "action": "uptime",
+            "status": "ok",
+            "uptime_seconds": uptime_sec,
+            "uptime_human": uptime_str,
+            "boot_time": boot_str,
+            "reply": f"⏱️ System Uptime: {uptime_str} (booted on {boot_str})."
+        }
+    except Exception as e:
+        return {"action": "uptime", "status": "error", "reply": f"Could not determine system uptime: {e}"}
+
+
 # ── Quick Notes ─────────────────────────────────────────────────────────────
 NOTES_FILE = Path(__file__).parent / "notes.txt"
 def save_note(text: str) -> dict:
@@ -1361,6 +1393,10 @@ def route_intent(text: str):
         if folder_name and folder_name.lower() not in ['on desktop', 'desktop']:
             return create_desktop_folder(folder_name)
 
+    # ── System Uptime ─────────────────────────────────────────────────────────
+    if any(kw in t for kw in ["system uptime", "what is my uptime", "how long has my pc been on", "when did my pc restart", "when was my pc turned on", "boot time", "uptime"]):
+        return get_system_uptime()
+
     # ── Quick Notes ──────────────────────────────────────────────────
     note_m = re.search(r'^note(?:s)?[:\s]+(.+)', t)
     if note_m:
@@ -1785,6 +1821,7 @@ def sysstats():
             battery_data["charging"] = battery.power_plugged
 
         disk_info = get_disk_space()
+        uptime_info = get_system_uptime()
             
         return jsonify({
             "cpu": cpu,
@@ -1792,7 +1829,8 @@ def sysstats():
             "ram_total": ram_total,
             "ram_percent": ram_percent,
             "battery": battery_data,
-            "disk": disk_info
+            "disk": disk_info,
+            "uptime": uptime_info
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
