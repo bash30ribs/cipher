@@ -16,18 +16,19 @@
             --surface: #15181e;
             --border: #23272f;
             --accent: #4cc9f0;
+            --accent-cyan: #4cc9f0;
             --accent-glow: rgba(76, 201, 240, 0.15);
             --text-main: #f1f5f9;
             --text-muted: #94a3b8;
             --gradient: linear-gradient(135deg, var(--accent), #4361ee);
         }
- 
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
- 
+
         body {
             background-color: var(--bg);
             color: var(--text-main);
@@ -36,17 +37,41 @@
             line-height: 1.6;
             -webkit-font-smoothing: antialiased;
         }
- 
+
         /* Minimalist Background */
         body::before {
             content: '';
             position: fixed;
             inset: 0;
             background: radial-gradient(circle at 80% 20%, rgba(76, 201, 240, 0.05), transparent 40%),
-                        radial-gradient(circle at 20% 80%, rgba(67, 97, 238, 0.03), transparent 40%);
+                radial-gradient(circle at 20% 80%, rgba(67, 97, 238, 0.03), transparent 40%);
             z-index: -1;
         }
- 
+
+        .blur-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .orb-1 {
+            width: 380px;
+            height: 380px;
+            top: 10%;
+            right: 15%;
+            background: rgba(76, 201, 240, 0.12);
+        }
+
+        .orb-2 {
+            width: 450px;
+            height: 450px;
+            bottom: 15%;
+            left: 10%;
+            background: rgba(67, 97, 238, 0.1);
+        }
+
         header {
             padding: 1.5rem 10%;
             display: flex;
@@ -60,19 +85,19 @@
             backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
         }
- 
+
         .logo-wrap {
             display: flex;
             align-items: center;
             gap: 0.75rem;
         }
- 
+
         .logo-img {
             width: 32px;
             height: 32px;
             object-fit: contain;
         }
- 
+
         .logo-text {
             font-family: 'Outfit', sans-serif;
             font-size: 1.5rem;
@@ -80,7 +105,7 @@
             color: var(--text-main);
             letter-spacing: -0.02em;
         }
- 
+
         nav a {
             color: var(--text-muted);
             text-decoration: none;
@@ -89,11 +114,11 @@
             font-size: 0.95rem;
             transition: color .3s;
         }
- 
+
         nav a:hover {
             color: var(--accent);
         }
- 
+
         .hero {
             padding-top: 160px;
             padding-bottom: 100px;
@@ -105,7 +130,7 @@
             padding-left: 1rem;
             padding-right: 1rem;
         }
- 
+
         .hero h1 {
             font-family: 'Outfit', sans-serif;
             font-size: clamp(2.5rem, 8vw, 4.5rem);
@@ -114,7 +139,7 @@
             letter-spacing: -0.03em;
             font-weight: 700;
         }
- 
+
         .hero p {
             font-size: 1.2rem;
             max-width: 640px;
@@ -127,7 +152,7 @@
             display: flex;
             gap: 1.5rem;
         }
- 
+
         .btn {
             padding: 1rem 2.5rem;
             border-radius: 8px;
@@ -138,33 +163,33 @@
             overflow: hidden;
             font-size: 0.95rem;
         }
- 
+
         .btn-primary {
             background: var(--gradient);
             color: white;
             border: none;
         }
- 
+
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(76, 201, 240, 0.3);
         }
- 
+
         .btn-outline {
             border: 1px solid var(--border);
             color: var(--text-main);
             background: var(--surface);
         }
- 
+
         .btn-outline:hover {
             border-color: var(--accent);
             transform: translateY(-2px);
         }
- 
+
         .features {
             padding: 8rem 10%;
         }
- 
+
         .section-title {
             text-align: center;
             font-family: 'Outfit', sans-serif;
@@ -173,13 +198,13 @@
             font-weight: 700;
             letter-spacing: -0.01em;
         }
- 
+
         .feature-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 2.5rem;
         }
- 
+
         .feature-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -187,18 +212,18 @@
             border-radius: 16px;
             transition: all .3s;
         }
- 
+
         .feature-card:hover {
             border-color: var(--accent);
             transform: translateY(-5px);
         }
- 
+
         .feature-icon {
             font-size: 2rem;
             margin-bottom: 1.5rem;
             display: block;
         }
- 
+
         .feature-card h3 {
             font-family: 'Outfit', sans-serif;
             font-size: 1.25rem;
@@ -206,12 +231,12 @@
             color: var(--text-main);
             font-weight: 600;
         }
- 
+
         .feature-card p {
             color: var(--text-muted);
             font-size: 1.05rem;
         }
- 
+
         .terminal-wrap {
             padding: 8rem 10%;
             display: flex;
@@ -219,7 +244,7 @@
             align-items: center;
             background: rgba(11, 13, 17, 0.5);
         }
- 
+
         .terminal {
             width: 100%;
             max-width: 800px;
@@ -229,42 +254,58 @@
             box-shadow: 0 40px 80px rgba(0, 0, 0, 0.4);
             overflow: hidden;
         }
- 
+
         .term-header {
             background: #161b22;
             padding: 1rem 1.5rem;
             display: flex;
             gap: 8px;
         }
- 
+
         .dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
         }
- 
-        .dot-red { background: #ff5f56; }
-        .dot-yel { background: #ffbd2e; }
-        .dot-grn { background: #27c93f; }
- 
+
+        .dot-red {
+            background: #ff5f56;
+        }
+
+        .dot-yel {
+            background: #ffbd2e;
+        }
+
+        .dot-grn {
+            background: #27c93f;
+        }
+
         .term-body {
             padding: 2.5rem;
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.9rem;
             color: #d1d5db;
         }
- 
-        .prompt { color: var(--accent); }
-        .cmd { color: white; }
-        .out { color: var(--text-muted); }
- 
+
+        .prompt {
+            color: var(--accent);
+        }
+
+        .cmd {
+            color: white;
+        }
+
+        .out {
+            color: var(--text-muted);
+        }
+
         footer {
             padding: 6rem 10%;
             text-align: center;
             border-top: 1px solid var(--border);
             color: var(--text-muted);
         }
- 
+
         .footer-logo {
             font-family: 'Outfit', sans-serif;
             font-size: 1.1rem;
@@ -313,7 +354,7 @@
         <nav>
             <a href="#features">Features</a>
             <a href="#install">Install</a>
-            <a href="https://github.com">GitHub</a>
+            <a href="https://github.com/bash30ribs/cipher" target="_blank" rel="noopener">GitHub</a>
         </nav>
     </header>
 
@@ -322,8 +363,9 @@
         <p>A precision-engineered desktop assistant built on Gemini. Control your local environment with voice, logic,
             and natural language.</p>
         <div class="cta-group">
-            <a href="https://github.com/hrishav2208/CIPHER" class="btn btn-primary">Download v2.5</a>
-            <a href="app.html" class="btn btn-outline" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">Live Demo</a>
+            <a href="https://github.com/bash30ribs/cipher" class="btn btn-primary">Download v2.5</a>
+            <a href="app.html" class="btn btn-outline"
+                style="border-color: var(--accent-cyan); color: var(--accent-cyan);">Live Demo</a>
             <a href="#features" class="btn btn-outline">Explore Features</a>
         </div>
     </section>
@@ -374,7 +416,7 @@
             </div>
             <div class="term-body">
                 <div><span class="prompt">C:\Users\User></span> <span class="cmd">git clone
-                        https://github.com/CIPHER-AI</span></div>
+                        https://github.com/bash30ribs/cipher.git</span></div>
                 <div class="out">Cloning into 'CIPHER'... done.</div>
                 <br>
                 <div><span class="prompt">C:\CIPHER></span> <span class="cmd">pip install -r requirements.txt</span>
