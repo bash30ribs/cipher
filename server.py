@@ -816,6 +816,65 @@ def parse_timer_seconds(text: str):
     return None
 
 
+# ── Network IP & Diagnostics ──────────────────────────────────────────────
+def get_network_diagnostics() -> dict:
+    hostname = socket.gethostname()
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('10.255.255.255', 1))
+        local_ip = s.getsockname()[0]
+        s.close()
+    except Exception:
+        local_ip = "127.0.0.1"
+        
+    online = check_internet_connection()
+    status_str = "Connected (Online)" if online else "Disconnected (Offline Mode)"
+    reply = (
+        f"🌐 Network Diagnostics:\n"
+        f"• Local IP: {local_ip}\n"
+        f"• Hostname: {hostname}\n"
+        f"• Internet: {status_str}"
+    )
+    return {
+        "action": "network_diagnostics",
+        "local_ip": local_ip,
+        "hostname": hostname,
+        "online": online,
+        "reply": reply,
+        "status": "ok"
+    }
+
+
+# ── Recycle Bin Cleaner ───────────────────────────────────────────────────
+def empty_recycle_bin() -> dict:
+    if IS_CLOUD:
+        return {"action": "empty_recycle_bin", "reply": "Recycle bin cleaning is only supported on a local device."}
+    if OS == "Windows":
+        try:
+            cmd = 'powershell -NoProfile -Command "Clear-RecycleBin -Force -ErrorAction SilentlyContinue"'
+            subprocess.run(cmd, shell=True, capture_output=True, timeout=10)
+            return {"action": "empty_recycle_bin", "status": "ok", "reply": "🗑️ Recycle Bin has been emptied."}
+        except Exception as e:
+            return {"action": "empty_recycle_bin", "status": "error", "reply": f"Could not empty Recycle Bin: {e}"}
+    return {"action": "empty_recycle_bin", "reply": "Recycle Bin cleaner is only supported on Windows."}
+
+
+# ── Desktop Folder Creator ────────────────────────────────────────────────
+def create_desktop_folder(folder_name: str) -> dict:
+    if IS_CLOUD:
+        return {"action": "create_folder", "reply": "Desktop creation is only supported on a local device."}
+    try:
+        clean_name = re.sub(r'[\\/*?:"<>|]', '', folder_name).strip()
+        if not clean_name:
+            return {"action": "create_folder", "status": "error", "reply": "Please specify a valid folder name."}
+        desktop = Path.home() / "Desktop"
+        target = desktop / clean_name
+        target.mkdir(parents=True, exist_ok=True)
+        return {"action": "create_folder", "status": "ok", "reply": f"📁 Created folder '{clean_name}' on your Desktop."}
+    except Exception as e:
+        return {"action": "create_folder", "status": "error", "reply": f"Could not create folder: {e}"}
+
+
 # ── Quick Notes ─────────────────────────────────────────────────────────────
 NOTES_FILE = Path(__file__).parent / "notes.txt"
 def save_note(text: str) -> dict:
@@ -1252,6 +1311,22 @@ def route_intent(text: str):
         secs = parse_timer_seconds(t)
         if secs:
             return set_timer(secs)
+
+    # ── Network IP / Diagnostics ──────────────────────────────────────────────
+    if any(kw in t for kw in ["what is my ip", "my ip", "what's my ip", "local ip", "ip address", "network diagnostics", "network details"]):
+        return get_network_diagnostics()
+
+    # ── Empty Recycle Bin ─────────────────────────────────────────────────────
+    if any(kw in t for kw in ["empty recycle bin", "clean recycle bin", "empty trash", "clear recycle bin", "clean trash"]):
+        return empty_recycle_bin()
+
+    # ── Create Desktop Folder ─────────────────────────────────────────────────
+    create_folder_m = re.search(r'(?:create|make|new)\s+(?:a\s+)?folder\s+(?:named\s+|called\s+)?["\']?(.+?)["\']?(?:\s+on\s+desktop)?\s*$', t)
+    if create_folder_m:
+        folder_name = create_folder_m.group(1).strip()
+        folder_name = re.sub(r'\s+on\s+desktop$', '', folder_name, flags=re.IGNORECASE).strip()
+        if folder_name and folder_name.lower() not in ['on desktop', 'desktop']:
+            return create_desktop_folder(folder_name)
 
     # ── Quick Notes ──────────────────────────────────────────────────
     note_m = re.search(r'^note(?:s)?[:\s]+(.+)', t)
