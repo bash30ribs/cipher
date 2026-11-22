@@ -1117,7 +1117,7 @@
 
     .dashboard-stats-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 14px;
       width: 100%;
     }
@@ -1733,6 +1733,20 @@
               <span class="stat-sub" id="stat-battery-sub">Checking...</span>
             </div>
           </div>
+
+          <div class="stat-card" id="stat-disk-card" onclick="sendCommand('disk space')" style="cursor:pointer;" title="Click for storage details">
+            <div class="stat-gauge-wrapper">
+              <svg class="progress-ring" width="60" height="60">
+                <circle class="progress-ring-circle-bg" stroke="rgba(255,255,255,0.03)" stroke-width="3.5" fill="transparent" r="22" cx="30" cy="30"/>
+                <circle class="progress-ring-circle" id="stat-disk-circle" stroke="#a855f7" stroke-width="3.5" fill="transparent" r="22" cx="30" cy="30"/>
+              </svg>
+              <span class="stat-gauge-value" id="stat-disk-val">--%</span>
+            </div>
+            <div class="stat-info">
+              <span class="stat-label">STORAGE</span>
+              <span class="stat-sub" id="stat-disk-sub">Checking...</span>
+            </div>
+          </div>
         </div>
 
         <!-- Quick OS Controls -->
@@ -1745,9 +1759,12 @@
             <button class="control-btn" onclick="sendCommand('cipher sleep')">😴 Sleep Mode</button>
             <button class="control-btn" onclick="sendCommand('play music')">⏯️ Play/Pause</button>
             <button class="control-btn" onclick="sendCommand('next song')">⏭️ Skip Song</button>
+            <button class="control-btn" onclick="sendCommand('what is using my ram')">🧠 Heavy Apps</button>
+            <button class="control-btn" onclick="sendCommand('set a timer for 5 minutes')">⏱️ 5m Timer</button>
+            <button class="control-btn" onclick="sendCommand('empty recycle bin')">🗑️ Clean Bin</button>
+            <button class="control-btn" onclick="sendCommand('what is my ip')">📍 My IP</button>
+            <button class="control-btn" onclick="sendCommand('calculate 25 * 4')">🧮 Math Calc</button>
             <button class="control-btn" onclick="sendCommand('help')">💡 Guide</button>
-            <button class="control-btn" onclick="sendCommand('check internet')">🌐 Network</button>
-            <button class="control-btn" onclick="sendCommand('calculate 25 * 4')">🧮 Offline Math</button>
           </div>
         </div>
 
@@ -2712,6 +2729,28 @@
           document.getElementById("stat-battery-sub").textContent = "A/C Power";
           document.getElementById("stat-battery-circle").style.strokeDashoffset = 0;
           document.getElementById("stat-battery-circle").style.stroke = "var(--success)";
+        }
+
+        // Update Storage / Disk
+        const disk = data.disk || {};
+        if (disk.percent !== undefined) {
+          const diskPercent = Math.round(disk.percent);
+          const diskEl = document.getElementById("stat-disk-val");
+          const diskSub = document.getElementById("stat-disk-sub");
+          const diskCircle = document.getElementById("stat-disk-circle");
+          if (diskEl) diskEl.textContent = diskPercent + "%";
+          if (diskSub) diskSub.textContent = `${disk.free_gb || 0}G free`;
+          if (diskCircle) {
+            const diskOffset = CIRCUMFERENCE - (diskPercent / 100) * CIRCUMFERENCE;
+            diskCircle.style.strokeDashoffset = diskOffset;
+            if (diskPercent > 90) {
+              diskCircle.style.stroke = "var(--danger)";
+            } else if (diskPercent > 75) {
+              diskCircle.style.stroke = "orange";
+            } else {
+              diskCircle.style.stroke = "#a855f7";
+            }
+          }
         }
       } catch (err) {
         console.warn("[CIPHER] Stats load error:", err);
