@@ -24,6 +24,8 @@ from server import (
     create_desktop_folder,
     get_volume,
     get_system_uptime,
+    clear_notes,
+    clipboard_clear,
 )
 
 
@@ -215,6 +217,17 @@ class TestCipherIntents(unittest.TestCase):
         self.assertIn("uptime_seconds", result)
         self.assertIn("boot_time", result)
 
+    def test_clear_notes_intent(self):
+        result = route_intent("clear notes")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.get("action"), "note")
+        self.assertEqual(result.get("status"), "ok")
+
+    def test_clear_clipboard_intent(self):
+        result = route_intent("clear clipboard")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.get("action"), "clipboard")
+
 
 class TestCipherOfflineHelpers(unittest.TestCase):
     def test_check_internet_connection(self):
@@ -285,6 +298,15 @@ class TestCipherOfflineHelpers(unittest.TestCase):
         self.assertIn("uptime_human", res)
         self.assertIn("boot_time", res)
         self.assertGreaterEqual(res.get("uptime_seconds", -1), 0)
+
+    def test_clear_notes_helper(self):
+        res = clear_notes()
+        self.assertEqual(res.get("status"), "ok")
+        self.assertIn("cleared", res.get("reply", "").lower())
+
+    def test_clear_clipboard_helper(self):
+        res = clipboard_clear()
+        self.assertIn(res.get("status"), ["ok", "error"])
 
 
 if __name__ == "__main__":

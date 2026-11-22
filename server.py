@@ -675,6 +675,15 @@ def clipboard_write(text: str) -> dict:
     except Exception as e:
         return {"action": "clipboard", "reply": f"Couldn't copy: {e}"}
 
+def clipboard_clear() -> dict:
+    if not _pyperclip:
+        return {"action": "clipboard", "reply": "Clipboard unavailable: install pyperclip."}
+    try:
+        _pyperclip.copy("")
+        return {"action": "clipboard", "status": "ok", "reply": "📋 Clipboard has been cleared."}
+    except Exception as e:
+        return {"action": "clipboard", "status": "error", "reply": f"Couldn't clear clipboard: {e}"}
+
 
 # ── File / folder opener ──────────────────────────────────────────────────
 FOLDER_MAP = {
@@ -965,6 +974,14 @@ def read_notes(n: int = 5) -> dict:
         return {"action": "note", "reply": "Recent notes:\n" + "\n".join(recent)}
     except Exception as e:
         return {"action": "note", "reply": f"Couldn't read notes: {e}"}
+
+def clear_notes() -> dict:
+    try:
+        if NOTES_FILE.exists():
+            NOTES_FILE.write_text("", encoding="utf-8")
+        return {"action": "note", "status": "ok", "reply": "📝 All saved notes have been cleared."}
+    except Exception as e:
+        return {"action": "note", "status": "error", "reply": f"Couldn't clear notes: {e}"}
 
 
 # ── Focus Mode ─────────────────────────────────────────────────────────────
@@ -1344,6 +1361,8 @@ def route_intent(text: str):
         return get_weather("auto")  # wttr.in auto-detects by IP
 
     # ── Clipboard ─────────────────────────────────────────────────
+    if any(kw in t for kw in ["clear clipboard", "empty clipboard", "erase clipboard", "clear my clipboard"]):
+        return clipboard_clear()
     if any(kw in t for kw in ["what's in my clipboard", "read clipboard", "show clipboard", "clipboard content", "paste content"]):
         return clipboard_read()
     copy_m = re.search(r'(?:copy|copy this|copy text)\s+["\']?(.+?)["\']?\s*$', t)
@@ -1398,6 +1417,8 @@ def route_intent(text: str):
         return get_system_uptime()
 
     # ── Quick Notes ──────────────────────────────────────────────────
+    if any(kw in t for kw in ["clear notes", "delete notes", "clear my notes", "delete my notes", "empty notes", "erase notes"]):
+        return clear_notes()
     note_m = re.search(r'^note(?:s)?[:\s]+(.+)', t)
     if note_m:
         return save_note(note_m.group(1).strip())
