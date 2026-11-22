@@ -64,6 +64,11 @@ Try saying these commands (in order):
 
 If all 5 work, you're ready to go! 🎉
 
+You can also run the automated test suite anytime:
+```bash
+python -m unittest discover -s tests -p "test_*.py" -v
+```
+
 ---
 
 ## Voice Commands
@@ -81,6 +86,11 @@ If all 5 work, you're ready to go! 🎉
 - "open Spotify"
 - "open VS Code"
 - "open Chrome"
+
+### Help & Commands
+- "help"
+- "what can you do"
+- "commands"
 
 ### Search
 - "search for Python tutorials"

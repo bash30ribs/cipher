@@ -48,8 +48,17 @@ Get a free key → [Google AI Studio](https://aistudio.google.com/app/apikey)
 ### 3. Run
 ```bash
 python server.py
+# or using make
+make start
 ```
-Open `docs/app.html` in Chrome/Edge, click the mic, and say **"Hey Cipher, show my system stats!"**
+Open `http://localhost:5000/app` (or `docs/app.html`) in Chrome/Edge, click the mic, and say **"Hey Cipher, show my system stats!"**
+
+### 4. Run Tests
+```bash
+python -m unittest discover -s tests -p "test_*.py" -v
+# or using make
+make test
+```
 
 ---
 
@@ -57,6 +66,7 @@ Open `docs/app.html` in Chrome/Edge, click the mic, and say **"Hey Cipher, show 
 
 | Category | Commands |
 |----------|----------|
+| **Help** | "help", "what can you do", "commands" |
 | **Launch** | "open youtube", "launch whatsapp", "open downloads folder" |
 | **Control** | "set volume to 80", "lock screen", "take a screenshot" |
 | **Stats** | "battery status", "cpu usage", "performance" |
@@ -78,6 +88,23 @@ Create "Traps" in the UI to automate your morning or work routine.
 ## 🎙 Wake Word
 Say **"Hey Cipher"** then wait a split second for the command.
 - *"Hey Cipher, open my documents."*
+
+---
+
+## 📡 REST API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | `GET` | Health check & service metadata |
+| `/app` | `GET` | Main UI interface |
+| `/landing` | `GET` | Landing & documentation page |
+| `/chat` | `POST` | Execute natural language or local commands |
+| `/sysinfo` | `GET` | Host hardware & OS specifications |
+| `/sysstats` | `GET` | Live CPU, RAM, and Battery telemetry |
+| `/traps` | `GET` / `POST` | Retrieve or create automated Trap routines |
+| `/traps/<name>/run` | `POST` | Trigger Trap execution |
+| `/traps/<name>/close` | `POST` | Close apps/sites in a Trap |
+| `/reset` | `POST` | Clear conversational context |
 
 ---
 
