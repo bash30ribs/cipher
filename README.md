@@ -69,16 +69,17 @@ make test
 | Category | Commands |
 |----------|----------|
 | **Help** | "help", "what can you do", "commands" |
-| **Math** | "calculate 25 * 4", "(12 + 8) * 3", "what is 150 / 2" |
+| **Math & Decisions** | "calculate 25 * 4", "flip a coin", "roll a d20", "pick a number between 1 and 100" |
 | **Network & IP** | "check internet", "internet status", "what is my ip", "local ip" |
 | **Storage & RAM** | "disk space", "storage info", "what is using my ram", "top apps" |
+| **System Uptime** | "system uptime", "how long has my pc been on", "boot time" |
 | **Timers** | "set a timer for 10 minutes", "check timer", "cancel timer" |
+| **Audio & Volume** | "what is the volume", "set volume to 80", "mute", "unmute" |
 | **System Maintenance** | "empty recycle bin", "create folder ProjectX on desktop" |
+| **Productivity** | "note: meeting at 3pm", "show notes", "clear notes", "read clipboard", "clear clipboard" |
 | **Launch** | "open youtube", "launch whatsapp", "open downloads folder" |
-| **Control** | "set volume to 80", "lock screen", "take a screenshot" |
+| **Control** | "lock screen", "take a screenshot" |
 | **Stats** | "battery status", "cpu usage", "performance" |
-| **Environment** | "weather in Paris", "current temperature" |
-| **Productivity** | "note: meeting at 3pm", "show my notes", "read clipboard" |
 | **Focus** | "focus mode on", "disable distractions" |
 | **Navigation** | "switch to Spotify tab", "go to Chrome window" |
 | **AI** | "answer this how many days to a year?", "ai what is gravity?" |

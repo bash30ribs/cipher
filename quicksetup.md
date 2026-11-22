@@ -92,12 +92,19 @@ python -m unittest discover -s tests -p "test_*.py" -v
 - "what can you do"
 - "commands"
 
-### Offline Math & Network
+### Offline Math & Decisions
 - "calculate 25 * 4"
 - "(10 + 5) * 4"
+- "flip a coin"
+- "roll a d20"
+- "pick a number between 1 and 100"
+
+### Network & System Telemetry
 - "check internet"
 - "internet status"
 - "what is my ip"
+- "system uptime"
+- "what is the volume"
 
 ### Timers & System Utilities
 - "set a timer for 5 minutes"
@@ -107,6 +114,8 @@ python -m unittest discover -s tests -p "test_*.py" -v
 - "how much storage do i have"
 - "empty recycle bin"
 - "create folder Projects on desktop"
+- "clear notes"
+- "clear clipboard"
 
 ### Search
 - "search for Python tutorials"
