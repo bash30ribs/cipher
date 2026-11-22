@@ -22,6 +22,7 @@ from server import (
     get_network_diagnostics,
     empty_recycle_bin,
     create_desktop_folder,
+    get_volume,
 )
 
 
@@ -200,6 +201,12 @@ class TestCipherIntents(unittest.TestCase):
         self.assertEqual(result.get("action"), "network_diagnostics")
         self.assertIn("local_ip", result)
 
+    def test_volume_query_intent(self):
+        result = route_intent("what is the volume")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.get("action"), "get_volume")
+        self.assertIn("level", result)
+
 
 class TestCipherOfflineHelpers(unittest.TestCase):
     def test_check_internet_connection(self):
@@ -255,6 +262,13 @@ class TestCipherOfflineHelpers(unittest.TestCase):
         self.assertEqual(diag.get("status"), "ok")
         self.assertIn("local_ip", diag)
         self.assertIn("hostname", diag)
+
+    def test_get_volume_helper(self):
+        res = get_volume()
+        self.assertIn(res.get("status"), ["ok", "error"])
+        if res.get("status") == "ok":
+            self.assertIn("level", res)
+            self.assertIn("muted", res)
 
 
 if __name__ == "__main__":

@@ -512,19 +512,30 @@ def screenshot() -> dict:
                 "reply": f"Screenshot failed: {e}"}
 
 
+def _get_windows_volume_endpoint():
+    """Retrieve Windows master volume endpoint supporting both modern and legacy pycaw."""
+    try:
+        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+        from comtypes import CLSCTX_ALL
+        speakers = AudioUtilities.GetSpeakers()
+        if hasattr(speakers, "EndpointVolume"):
+            return speakers.EndpointVolume
+        interface = speakers.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+        return interface.QueryInterface(IAudioEndpointVolume)
+    except Exception:
+        return None
+
+
 def _windows_set_volume(level: int) -> bool:
     """Set Windows master volume. Tries pycaw first, then PowerShell COM fallback."""
     scalar = round(level / 100.0, 6)
     # Method 1: pycaw (preferred)
     try:
-        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-        from comtypes import CLSCTX_ALL
-        devices = AudioUtilities.GetSpeakers()
-        interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-        vol = interface.QueryInterface(IAudioEndpointVolume)
-        vol.SetMasterVolumeLevelScalar(scalar, None)
-        print(f"[Volume] pycaw -> {level}%")
-        return True
+        ep = _get_windows_volume_endpoint()
+        if ep:
+            ep.SetMasterVolumeLevelScalar(scalar, None)
+            print(f"[Volume] pycaw -> {level}%")
+            return True
     except Exception as e:
         print(f"[Volume] pycaw failed ({e}), using PowerShell...")
     # Method 2: PowerShell + inline C# (no extra packages needed)
@@ -586,6 +597,30 @@ def set_volume(level: int) -> dict:
     else:
         reply = f"Volume control not supported on {OS}."
     return {"action": "set_volume", "level": level, "status": "ok", "reply": reply}
+
+
+def get_volume() -> dict:
+    """Retrieve current system volume level and mute state."""
+    if IS_CLOUD:
+        return {"action": "get_volume", "status": "error", "reply": "Volume check is only supported when running CIPHER locally on your device."}
+    if OS == "Windows":
+        ep = _get_windows_volume_endpoint()
+        if ep:
+            try:
+                scalar = ep.GetMasterVolumeLevelScalar()
+                muted = bool(ep.GetMute())
+                level = round(scalar * 100)
+                mute_str = " (muted)" if muted else ""
+                return {
+                    "action": "get_volume",
+                    "status": "ok",
+                    "level": level,
+                    "muted": muted,
+                    "reply": f"🔊 Current system volume is {level}%{mute_str}."
+                }
+            except Exception as e:
+                return {"action": "get_volume", "status": "error", "reply": f"Could not read volume: {e}"}
+    return {"action": "get_volume", "status": "error", "reply": f"Volume checking not supported on {OS}."}
 
 
 # ── Weather ──────────────────────────────────────────────────────────────
@@ -1169,6 +1204,10 @@ def route_intent(text: str):
         if match:
             return set_volume(int(match.group(1)))
 
+    # Volume query
+    if any(kw in t for kw in ["what is the volume", "what's the volume", "volume level", "how loud is it", "check volume", "current volume", "get volume", "is it muted"]):
+        return get_volume()
+
     # Volume up/down
     if any(kw in t for kw in ["volume up", "increase volume", "turn up"]):
         return set_volume(75)  # Default to 75%
@@ -1184,15 +1223,12 @@ def route_intent(text: str):
         elif OS == "Linux":
             run_cmd("amixer -q sset Master mute")
         elif OS == "Windows":
-            try:
-                from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-                from comtypes import CLSCTX_ALL
-                devices = AudioUtilities.GetSpeakers()
-                interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-                vol = interface.QueryInterface(IAudioEndpointVolume)
-                vol.SetMute(1, None)
-            except:
-                pass
+            ep = _get_windows_volume_endpoint()
+            if ep:
+                try:
+                    ep.SetMute(1, None)
+                except Exception:
+                    pass
         return {"action": "mute", "status": "ok", "reply": "Volume muted."}
 
     if "unmute" in t:
@@ -1203,15 +1239,12 @@ def route_intent(text: str):
         elif OS == "Linux":
             run_cmd("amixer -q sset Master unmute")
         elif OS == "Windows":
-            try:
-                from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-                from comtypes import CLSCTX_ALL
-                devices = AudioUtilities.GetSpeakers()
-                interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-                vol = interface.QueryInterface(IAudioEndpointVolume)
-                vol.SetMute(0, None)
-            except:
-                pass
+            ep = _get_windows_volume_endpoint()
+            if ep:
+                try:
+                    ep.SetMute(0, None)
+                except Exception:
+                    pass
         return {"action": "unmute", "status": "ok", "reply": "Volume unmuted."}
 
     # ── Media Control (Play/Pause/Next/Prev) ──────────────────────────────────
@@ -1789,7 +1822,7 @@ def _build_local_reply(result: dict) -> str:
         return f"Volume set to {result.get('level')}%."
     if action in ("close_app", "close_window", "trap_run"):
         return result.get("reply", "Done.")
-    return "Done."
+    return result.get("reply") or "Done."
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
