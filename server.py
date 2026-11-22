@@ -87,6 +87,7 @@ APP_MAP = {
     "task manager":{"Windows": "start taskmgr",          "Darwin": "",                              "Linux": "gnome-system-monitor"},
     "taskmgr":    {"Windows": "start taskmgr",           "Darwin": "",                              "Linux": "gnome-system-monitor"},
     "control panel":{"Windows": "start control",         "Darwin": "",                              "Linux": "gnome-control-center"},
+    "powershell":   {"Windows": "start powershell",      "Darwin": "pwsh",                          "Linux": "pwsh"},
 }
 
 # ── Process names for closing apps via taskkill ───────────────────────────────
@@ -116,6 +117,7 @@ PROCESS_MAP = {
     "task manager": "Taskmgr.exe",
     "obs":          "obs64.exe",
     "steam":        "steam.exe",
+    "powershell":   "powershell.exe",
 }
 
 # ── Website shortcuts ─────────────────────────────────────────────────────────
@@ -1076,6 +1078,32 @@ def route_intent(text: str):
         return {
             "action": "sleep",
             "reply": "Going to sleep. Mic off. Click the mic icon to wake me up."
+        }
+
+    # ── Help / Commands ───────────────────────────────────────────────────────
+    if any(t == kw for kw in ["help", "commands", "show commands", "what can you do", "list commands", "help me"]):
+        return {
+            "action": "help",
+            "reply": (
+                "Here are some commands you can ask me:\n"
+                "• 'open <website>' (e.g. open youtube, open github)\n"
+                "• 'launch <app>' (e.g. launch notepad, open calculator)\n"
+                "• 'set volume to <0-100>' or 'mute' / 'unmute'\n"
+                "• 'take a screenshot'\n"
+                "• 'system stats' or 'battery status'\n"
+                "• 'weather in <city>'\n"
+                "• 'note: <text>' or 'read notes'\n"
+                "• 'focus mode on' / 'focus mode off'\n"
+                "• 'run trap <name>' (e.g. run trap beast)\n"
+                "• 'answer this <question>' for AI answers"
+            )
+        }
+
+    # ── Basic Greetings ───────────────────────────────────────────────────────
+    if any(t == kw for kw in ["hello", "hi", "hey cipher", "hey", "who are you", "what is cipher"]):
+        return {
+            "action": "greeting",
+            "reply": "Hello! I am CIPHER, your desktop AI assistant. How can I help you today? Say 'help' to see available commands."
         }
 
     return None  # Not handled locally -> fall through to Gemini
