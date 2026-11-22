@@ -58,6 +58,110 @@
       z-index: 0;
     }
 
+    /* Ambient Floating Glow Orbs */
+    .bg-glow-orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .orb-tl {
+      width: 320px;
+      height: 320px;
+      top: -60px;
+      left: -60px;
+      background: rgba(76, 201, 240, 0.08);
+      animation: orbFloat1 14s ease-in-out infinite alternate;
+    }
+
+    .orb-br {
+      width: 380px;
+      height: 380px;
+      bottom: -80px;
+      right: -60px;
+      background: rgba(67, 97, 238, 0.07);
+      animation: orbFloat2 18s ease-in-out infinite alternate;
+    }
+
+    @keyframes orbFloat1 {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(45px, 35px) scale(1.15); }
+    }
+
+    @keyframes orbFloat2 {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(-40px, -45px) scale(0.9); }
+    }
+
+    /* Network Badge */
+    .net-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+      font-family: var(--font-mono);
+      transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid transparent;
+      user-select: none;
+    }
+
+    .net-badge.online {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .net-badge.offline {
+      background: rgba(245, 158, 11, 0.14);
+      color: #f59e0b;
+      border-color: rgba(245, 158, 11, 0.35);
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+      animation: pulseBadge 2s infinite ease-in-out;
+    }
+
+    .net-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    @keyframes pulseBadge {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.75; transform: scale(1.04); }
+    }
+
+    /* Offline Alert Banner */
+    .offline-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 8px;
+      margin: 8px 0;
+      font-size: 0.76rem;
+      color: #fbd38d;
+      backdrop-filter: blur(8px);
+      animation: bannerSlide .35s ease-out;
+    }
+
+    .offline-banner.visible {
+      display: flex;
+    }
+
+    @keyframes bannerSlide {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     /* ── Layout ─────────────────────────────────────────────────── */
     #app {
       position: relative;
@@ -1495,6 +1599,10 @@
 </head>
 
 <body>
+  <!-- Ambient Background Orbs -->
+  <div class="bg-glow-orb orb-tl"></div>
+  <div class="bg-glow-orb orb-br"></div>
+
   <!-- Sleep Overlay -->
   <div id="sleep-overlay">
     <div class="sleep-icon">😴</div>
@@ -1517,11 +1625,18 @@
       <div class="header-right">
         <div id="status-dot"></div>
         <span id="status-label">CHECKING</span>
+        <div id="network-badge" class="net-badge online"><span class="net-dot"></span><span id="net-text">ONLINE</span></div>
         <button class="btn-icon" id="tts-btn" onclick="toggleTTS()" title="Toggle voice replies">🔊 TTS</button>
         <button class="btn-icon" id="trap-btn" onclick="toggleTrapPanel()" title="Trap Manager">TRAP</button>
         <button class="btn-icon" onclick="clearChat()" title="Clear conversation">CLR</button>
       </div>
     </header>
+
+    <!-- Offline Alert Banner -->
+    <div id="offline-banner" class="offline-banner">
+      <span class="offline-icon">⚡</span>
+      <span><strong>Offline Desktop Mode:</strong> All local OS commands (launch apps, volume, mute, system stats, screenshots, notes, traps, math) work 100% without internet!</span>
+    </div>
 
     <!-- Control Center Panel -->
     <div id="trap-panel">
@@ -1630,6 +1745,9 @@
             <button class="control-btn" onclick="sendCommand('cipher sleep')">😴 Sleep Mode</button>
             <button class="control-btn" onclick="sendCommand('play music')">⏯️ Play/Pause</button>
             <button class="control-btn" onclick="sendCommand('next song')">⏭️ Skip Song</button>
+            <button class="control-btn" onclick="sendCommand('help')">💡 Guide</button>
+            <button class="control-btn" onclick="sendCommand('check internet')">🌐 Network</button>
+            <button class="control-btn" onclick="sendCommand('calculate 25 * 4')">🧮 Offline Math</button>
           </div>
         </div>
 
@@ -1818,13 +1936,43 @@
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
     });
 
+    /* ── Network telemetry badge ──────────────────────────────────── */
+    function updateNetworkBadge(isOnline) {
+      const netBadge = document.getElementById("network-badge");
+      const netText = document.getElementById("net-text");
+      const offlineBanner = document.getElementById("offline-banner");
+      if (netBadge && netText) {
+        if (isOnline) {
+          netBadge.className = "net-badge online";
+          netText.textContent = "ONLINE";
+          if (offlineBanner) offlineBanner.classList.remove("visible");
+        } else {
+          netBadge.className = "net-badge offline";
+          netText.textContent = "OFFLINE MODE";
+          if (offlineBanner) offlineBanner.classList.add("visible");
+        }
+      }
+    }
+
+    window.addEventListener("online", () => {
+      updateNetworkBadge(true);
+      showToast("🌐 Connected to internet! Online voice & AI restored.");
+    });
+    window.addEventListener("offline", () => {
+      updateNetworkBadge(false);
+      showToast("📡 Internet disconnected. CIPHER Offline Desktop Mode active!");
+    });
+
     /* ── Server health check ──────────────────────────────────────── */
     async function checkServer() {
       try {
-        const r = await fetch(SERVER + "/", { signal: AbortSignal.timeout(3000) });
+        const r = await fetch(SERVER + "/health", { signal: AbortSignal.timeout(3000) });
         if (r.ok) {
+          const health = await r.json();
           setStatus("online");
-          if (serverHint) serverHint.textContent = "✓ Server connected — https://localhost:5000";
+          const netMsg = health.online ? "Online" : "Offline (Local Engine Active)";
+          if (serverHint) serverHint.textContent = `✓ Server connected — ${netMsg} — ${SERVER}`;
+          updateNetworkBadge(health.online !== false && navigator.onLine);
         } else {
           setStatus("offline");
         }
@@ -1909,6 +2057,12 @@
         }
 
         if (data.error && !data.reply) throw new Error("Server error.");
+
+        if (data.offline || data.action === "offline_mode") {
+          updateNetworkBadge(false);
+        } else if (data.action === "network_status") {
+          updateNetworkBadge(data.meta?.status === "online");
+        }
 
         if (data.action === "clear") {
           messagesEl.innerHTML = "";
@@ -2158,7 +2312,9 @@
         if (e.error === 'not-allowed') {
           showToast('🚫 Mic permission denied. Allow mic in browser settings.');
         } else if (e.error === 'network') {
-          showToast('⚠ Voice recognition needs an internet connection.');
+          showToast('📡 Voice recognition offline — Keyboard input is active & ready for all desktop commands!');
+          updateNetworkBadge(false);
+          if (inputEl) inputEl.focus();
         } else {
           showToast('Mic error: ' + e.error);
         }
