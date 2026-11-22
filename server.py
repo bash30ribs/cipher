@@ -1088,10 +1088,34 @@ def index():
     return redirect("/app")
 
 
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({
+        "status": "ok",
+        "app": "CIPHER",
+        "version": "2.5",
+        "os": OS,
+        "cloud": IS_CLOUD,
+        "gemini_configured": bool(client)
+    })
+
+
 @app.route("/app")
 def serve_app():
     """Serve the app interface at http://localhost:5000/app"""
     return send_from_directory(Path(__file__).parent / 'docs', 'app.html')
+
+
+@app.route("/cipher.html")
+def legacy_cipher_html():
+    """Redirect legacy cipher.html requests to /app."""
+    return redirect("/app")
+
+
+@app.route("/landing")
+def landing():
+    """Serve the landing/docs page at http://localhost:5000/landing"""
+    return send_from_directory(Path(__file__).parent / 'docs', 'index.html')
 
 
 @app.route("/cipher_logo.png")
