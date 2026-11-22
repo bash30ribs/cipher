@@ -12,6 +12,8 @@
 ## ✨ Features
 
 ### 🎤 **Voice Command Execution**
+- ✅ **100% Offline Mode**: All OS controls, app launchers, volume, system stats, notes, traps, and math work without network.
+- ✅ **Live Telemetry & Animations**: Ambient floating glow orbs, dynamic network status badge, and mic radar pulses.
 - ✅ **Websites & Apps**: Open any URL or local application with natural language.
 - ✅ **Trap System**: Multi-launch (or close) batches of apps and sites in one go.
 - ✅ **System Stats**: Live reports on Battery, CPU, and RAM usage.
@@ -67,6 +69,8 @@ make test
 | Category | Commands |
 |----------|----------|
 | **Help** | "help", "what can you do", "commands" |
+| **Math** | "calculate 25 * 4", "(12 + 8) * 3", "what is 150 / 2" |
+| **Network** | "check internet", "internet status", "am i online" |
 | **Launch** | "open youtube", "launch whatsapp", "open downloads folder" |
 | **Control** | "set volume to 80", "lock screen", "take a screenshot" |
 | **Stats** | "battery status", "cpu usage", "performance" |

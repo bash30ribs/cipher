@@ -92,6 +92,12 @@ python -m unittest discover -s tests -p "test_*.py" -v
 - "what can you do"
 - "commands"
 
+### Offline Math & Network
+- "calculate 25 * 4"
+- "(10 + 5) * 4"
+- "check internet"
+- "internet status"
+
 ### Search
 - "search for Python tutorials"
 - "play lofi on YouTube"
