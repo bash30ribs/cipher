@@ -116,10 +116,13 @@ Say **"Hey Cipher"** then wait a split second for the command.
 
 ---
 
-## 🛠️ Requirements
+## 🛠️ Requirements & Cross-Platform Support
 - Python 3.10+
-- Chrome/Edge (for Speech API)
-- Windows (Primary support), macOS/Linux (Partial)
+- Chrome / Edge (for Web Speech Recognition & Audio Synthesis)
+- **Universal OS Compatibility**:
+  - **Windows**: PyCaw master audio scalar, PowerShell / Wscript COM, Win32 EnumWindows, taskkill, and registry CPU querying.
+  - **macOS (Darwin)**: Native AppleScript via `osascript` (System Events, Music/Spotify, volume query/control, Finder trash emptying, Activity Monitor).
+  - **Linux**: Native `wmctrl`, `xdotool`, `amixer`/`pactl`, `playerctl`, `gio trash`, and `/proc/cpuinfo`.
 
 ---
 
