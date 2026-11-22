@@ -4,6 +4,7 @@ import sys
 import json
 import time
 import socket
+import random
 import ast
 import operator
 import platform
@@ -984,6 +985,23 @@ def clear_notes() -> dict:
         return {"action": "note", "status": "error", "reply": f"Couldn't clear notes: {e}"}
 
 
+# ── Offline Decision & Random Utilities ────────────────────────────────────
+def flip_coin() -> dict:
+    outcome = random.choice(["Heads", "Tails"])
+    return {"action": "coin", "status": "ok", "result": outcome, "reply": f"🪙 Coin flip: {outcome}!"}
+
+def roll_dice(sides: int = 6) -> dict:
+    sides = max(2, sides)
+    val = random.randint(1, sides)
+    return {"action": "dice", "status": "ok", "sides": sides, "result": val, "reply": f"🎲 You rolled a {val} (d{sides})."}
+
+def random_number(min_val: int = 1, max_val: int = 100) -> dict:
+    if min_val > max_val:
+        min_val, max_val = max_val, min_val
+    val = random.randint(min_val, max_val)
+    return {"action": "random_number", "status": "ok", "min": min_val, "max": max_val, "result": val, "reply": f"🔢 Random number between {min_val} and {max_val}: {val}."}
+
+
 # ── Focus Mode ─────────────────────────────────────────────────────────────
 DISTRACTION_SITES = ["youtube", "instagram", "twitter", "facebook", "reddit", "netflix", "tiktok"]
 DISTRACTION_APPS  = ["spotify", "discord", "steam", "whatsapp"]
@@ -1521,6 +1539,19 @@ def route_intent(text: str):
             return {"action": "calculator", "reply": f"Result: {expr} = {val}"}
         except Exception:
             pass
+
+    # ── Coin Flip, Dice, Random Numbers ───────────────────────────────────────
+    if any(kw in t for kw in ["flip a coin", "coin flip", "flip coin", "toss a coin", "heads or tails"]):
+        return flip_coin()
+
+    if "roll" in t and ("dice" in t or "die" in t or re.search(r'\bd\d+\b', t)):
+        sides_m = re.search(r'\bd(\d+)\b|(\d+)\s*side', t)
+        sides = int(sides_m.group(1) or sides_m.group(2)) if sides_m else 6
+        return roll_dice(sides)
+
+    rand_m = re.search(r'(?:pick|choose|random|generate)\s+(?:a\s+)?(?:random\s+)?number\s+(?:between\s+)?(\d+)\s+(?:and|to)\s+(\d+)', t)
+    if rand_m:
+        return random_number(int(rand_m.group(1)), int(rand_m.group(2)))
 
     # ── Basic Greetings ───────────────────────────────────────────────────────
     if any(t == kw for kw in ["hello", "hi", "hey cipher", "hey", "who are you", "what is cipher"]):

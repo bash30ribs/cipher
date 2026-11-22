@@ -26,6 +26,9 @@ from server import (
     get_system_uptime,
     clear_notes,
     clipboard_clear,
+    flip_coin,
+    roll_dice,
+    random_number,
 )
 
 
@@ -228,6 +231,26 @@ class TestCipherIntents(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result.get("action"), "clipboard")
 
+    def test_random_utilities_intents(self):
+        # Coin flip
+        c = route_intent("flip a coin")
+        self.assertIsNotNone(c)
+        self.assertEqual(c.get("action"), "coin")
+        self.assertIn(c.get("result"), ["Heads", "Tails"])
+
+        # Dice roll
+        d = route_intent("roll a d20")
+        self.assertIsNotNone(d)
+        self.assertEqual(d.get("action"), "dice")
+        self.assertEqual(d.get("sides"), 20)
+        self.assertTrue(1 <= d.get("result") <= 20)
+
+        # Random number
+        rn = route_intent("pick a number between 10 and 20")
+        self.assertIsNotNone(rn)
+        self.assertEqual(rn.get("action"), "random_number")
+        self.assertTrue(10 <= rn.get("result") <= 20)
+
 
 class TestCipherOfflineHelpers(unittest.TestCase):
     def test_check_internet_connection(self):
@@ -307,6 +330,22 @@ class TestCipherOfflineHelpers(unittest.TestCase):
     def test_clear_clipboard_helper(self):
         res = clipboard_clear()
         self.assertIn(res.get("status"), ["ok", "error"])
+
+    def test_random_utility_helpers(self):
+        # Coin
+        c = flip_coin()
+        self.assertEqual(c.get("status"), "ok")
+        self.assertIn(c.get("result"), ["Heads", "Tails"])
+
+        # Dice
+        d = roll_dice(6)
+        self.assertEqual(d.get("status"), "ok")
+        self.assertTrue(1 <= d.get("result") <= 6)
+
+        # Random number
+        rn = random_number(5, 10)
+        self.assertEqual(rn.get("status"), "ok")
+        self.assertTrue(5 <= rn.get("result") <= 10)
 
 
 if __name__ == "__main__":
