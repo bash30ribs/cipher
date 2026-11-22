@@ -8,7 +8,13 @@ ROOT_DIR = Path(__file__).parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from server import app, route_intent
+from server import (
+    app,
+    route_intent,
+    check_internet_connection,
+    safe_eval_math,
+    is_offline_error,
+)
 
 
 class TestCipherServer(unittest.TestCase):
@@ -137,6 +143,40 @@ class TestCipherIntents(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result.get("action"), "open_website")
         self.assertIn("google.com/search", result.get("url", ""))
+
+    def test_math_intent(self):
+        result = route_intent("calculate 25 * 4")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.get("action"), "calculator")
+        self.assertIn("100", result.get("reply", ""))
+
+    def test_network_status_intent(self):
+        result = route_intent("check internet")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.get("action"), "network_status")
+        self.assertIn("status", result)
+
+
+class TestCipherOfflineHelpers(unittest.TestCase):
+    def test_check_internet_connection(self):
+        res = check_internet_connection(timeout=0.5)
+        self.assertIsInstance(res, bool)
+
+    def test_safe_eval_math_operations(self):
+        self.assertEqual(safe_eval_math("25 * 4"), 100)
+        self.assertEqual(safe_eval_math("(12 + 8) * 3"), 60)
+        self.assertEqual(safe_eval_math("150 / 2"), 75.0)
+        self.assertEqual(safe_eval_math("10 - 4 + 2"), 8)
+
+    def test_safe_eval_math_rejects_unsafe(self):
+        with self.assertRaises(Exception):
+            safe_eval_math("__import__('os').system('dir')")
+
+    def test_is_offline_error(self):
+        self.assertTrue(is_offline_error(Exception("Failed to resolve host")))
+        self.assertTrue(is_offline_error(Exception("Network is unreachable")))
+        self.assertTrue(is_offline_error(Exception("getaddrinfo failed")))
+        self.assertFalse(is_offline_error(Exception("Invalid API key")))
 
 
 if __name__ == "__main__":
